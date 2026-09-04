@@ -43,3 +43,4 @@ actix-rt = { version = "2", optional = true }
 async-stream = { version = "0.3", optional = true }
 
 [dev-dependencies]
+uniffi_bindgen = "0.28.3"

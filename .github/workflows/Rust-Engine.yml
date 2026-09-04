@@ -21,50 +21,43 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # Option 2: If the action fails, fall back to manual download
-      # (uncomment if needed)
       - name: Download and set NDK manually
         run: |
-          NDK_VERSION=${{ env.ANDROID_NDK_VERSION }}
           NDK_ZIP=android-ndk-r26d-linux.zip
           curl -L -o $NDK_ZIP "https://dl.google.com/android/repository/$NDK_ZIP"
           unzip -q $NDK_ZIP -d $HOME
           echo "ANDROID_NDK_HOME=$HOME/android-ndk-r26d" >> $GITHUB_ENV
 
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
-          override: true
-          profile: minimal
+          targets: aarch64-linux-android, x86_64-linux-android
 
-      - name: Install Android Rust targets
-        run: |
-          rustup target add aarch64-linux-android
-          rustup target add x86_64-linux-android
+      - name: Cache Cargo Dependencies
+        uses: swatinem/rust-cache@v2
 
       - name: Install and verify cargo-ndk
         run: |
-          cargo install cargo-ndk --force
-          cargo ndk --help  # verify it works
+          cargo install cargo-ndk
+          cargo ndk --help
 
       - name: Build Rust library for Android
         run: |
           cd rustEngine
-          # NDK path is taken from $ANDROID_NDK_HOME automatically
           cargo ndk \
             --platform 21 \
             --target arm64-v8a --target x86_64 \
             --output-dir ../androidApp/app/src/main/jniLibs \
             build --release --lib --no-default-features
-        env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
 
-      - name: Generate Kotlin bindings with UniFFI
+      - name: Build UniFFI bindgen CLI
+        run: cargo build --release --manifest-path rustEngine/bindgen-cli/Cargo.toml
+    
+      - name: Generate Kotlin bindings
         run: |
           mkdir -p bindings-tmp
-          cargo run --manifest-path rustEngine/bindgen-cli/Cargo.toml -- \
-            generate \
+          ./rustEngine/target/release/uniffi-bindgen-cli generate \
             --language kotlin \
             --library androidApp/app/src/main/jniLibs/arm64-v8a/libapp_lib.so \
             --out-dir bindings-tmp \
@@ -83,3 +76,4 @@ jobs:
             androidApp/app/src/main/jniLibs/
             androidApp/app/src/main/java/com/telebox/app/engine/
           if-no-files-found: error
+          

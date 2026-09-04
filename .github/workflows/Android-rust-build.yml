@@ -31,7 +31,8 @@ jobs:
 
       - name: Install cargo tools
         run: |
-         cargo install cargo-ndk --locked
+          cargo install cargo-ndk --locked
+          cargo install uniffi_bindgen --version 0.28.3 --locked
 
       - name: Make script executable
         run: chmod +x ./build_pipeline.sh

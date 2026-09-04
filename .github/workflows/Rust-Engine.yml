@@ -1,11 +1,11 @@
 name: Build Rust Engine (Android)
 
 on:
-  workflow_dispatch:   # manual trigger only
+  workflow_dispatch:
 
 env:
   RUST_VERSION: stable
-  ANDROID_NDK_VERSION: 26.3.11579262   # r26d
+  ANDROID_NDK_VERSION: 26.3.11579262
 
 jobs:
   build:
@@ -21,38 +21,30 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # --- START INSTANT NDK CACHE LAYER ---
-      - name: Check Android NDK Cache
-        id: cache-ndk
-        uses: actions/cache@v4
-        with:
-          path: ~/android-ndk-r26d
-          key: ${{ runner.os }}-ndk-${{ env.ANDROID_NDK_VERSION }}
-
-      - name: Download NDK (Runs only if Cache Misses)
-        if: steps.cache-ndk.outputs.cache-hit != 'true'
+      # Manual NDK download (Option 2 – known to work)
+      - name: Download and extract NDK
         run: |
+          NDK_VERSION=${{ env.ANDROID_NDK_VERSION }}
           NDK_ZIP=android-ndk-r26d-linux.zip
-          curl -L -o $NDK_ZIP "https://google.com"
+          curl -L -o $NDK_ZIP "https://dl.google.com/android/repository/$NDK_ZIP"
           unzip -q $NDK_ZIP -d $HOME
-          rm $NDK_ZIP
-
-      - name: Set NDK Environment Path
-        run: echo "ANDROID_NDK_HOME=$HOME/android-ndk-r26d" >> $GITHUB_ENV
-      # --- END INSTANT NDK CACHE LAYER ---
+          echo "ANDROID_NDK_HOME=$HOME/android-ndk-r26d" >> $GITHUB_ENV
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ env.RUST_VERSION }}
-          targets: aarch64-linux-android, x86_64-linux-android
+          override: true
+          profile: minimal
 
-      - name: Cache Cargo Dependencies
-        uses: swatinem/rust-cache@v2
+      - name: Install Android Rust targets
+        run: |
+          rustup target add aarch64-linux-android
+          rustup target add x86_64-linux-android
 
       - name: Install and verify cargo-ndk
         run: |
-          cargo install cargo-ndk
+          cargo install cargo-ndk --force
           cargo ndk --help
 
       - name: Build Rust library for Android
@@ -63,16 +55,26 @@ jobs:
             --target arm64-v8a --target x86_64 \
             --output-dir ../androidApp/app/src/main/jniLibs \
             build --release --lib --no-default-features
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
 
+      # --- Verify the library exists and has UniFFI symbols ---
+      - name: Check library file
+        run: |
+          echo "Library size and type:"
+          ls -la androidApp/app/src/main/jniLibs/arm64-v8a/
+          file androidApp/app/src/main/jniLibs/arm64-v8a/libapp_lib.so
+          echo "Looking for UniFFI symbols..."
+          nm -D androidApp/app/src/main/jniLibs/arm64-v8a/libapp_lib.so | grep -i uniffi || echo "WARNING: No UniFFI symbols found!"
+
+      # --- Build the UniFFI bindgen CLI ---
       - name: Build UniFFI bindgen CLI
         run: cargo build --release --manifest-path rustEngine/bindgen-cli/Cargo.toml
 
-      - name: Verify library file
-        run: |
-          echo "Checking library existence..."
-          ls -la androidApp/app/src/main/jniLibs/arm64-v8a/
-          file androidApp/app/src/main/jniLibs/arm64-v8a/libapp_lib.so
+      - name: List built binary
+        run: ls -la rustEngine/target/release/uniffi-bindgen-cli
 
+      # --- Generate Kotlin bindings with absolute paths and verbose output ---
       - name: Generate Kotlin bindings
         run: |
           mkdir -p bindings-tmp
@@ -86,17 +88,25 @@ jobs:
         env:
           GITHUB_WORKSPACE: ${{ github.workspace }}
 
-      - name: List generated files
+      # --- List generated files ---
+      - name: Check generated bindings
         run: |
           echo "Contents of bindings-tmp:"
           ls -la bindings-tmp/
           echo "Kotlin files:"
-          find bindings-tmp -name "*.kt" -type f || echo "No .kt files found"
+          find bindings-tmp -name "*.kt" -type f || echo "No .kt files generated"
 
-      - name: Move Kotlin wrappers to expected package
+      # --- Move Kotlin wrappers to expected package ---
+      - name: Move Kotlin wrappers
         run: |
           mkdir -p androidApp/app/src/main/java/com/telebox/app/engine
-          cp bindings-tmp/*.kt androidApp/app/src/main/java/com/telebox/app/engine/
+          # Use a loop to copy any .kt files if present
+          if compgen -G "bindings-tmp/*.kt" > /dev/null; then
+            cp bindings-tmp/*.kt androidApp/app/src/main/java/com/telebox/app/engine/
+          else
+            echo "No .kt files to copy – generation failed!"
+            exit 1
+          fi
 
       - name: Upload generated artifacts
         uses: actions/upload-artifact@v4
@@ -106,4 +116,3 @@ jobs:
             androidApp/app/src/main/jniLibs/
             androidApp/app/src/main/java/com/telebox/app/engine/
           if-no-files-found: error
-          

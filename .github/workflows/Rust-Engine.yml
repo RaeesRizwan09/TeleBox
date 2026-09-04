@@ -1,10 +1,11 @@
 name: Build Rust Engine (Android)
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:   # manual trigger only
 
 env:
   RUST_VERSION: stable
+  ANDROID_NDK_VERSION: 26.3.11579262   # r26d
 
 jobs:
   build:
@@ -20,10 +21,21 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      # Option 1: Use the official setup-android action
       - name: Set up Android SDK & NDK
         uses: android-actions/setup-android@v3
         with:
-          ndk-version: 26.3.11579262
+          ndk-version: ${{ env.ANDROID_NDK_VERSION }}
+
+      # Option 2: If the action fails, fall back to manual download
+      # (uncomment if needed)
+      # - name: Download and set NDK manually
+      #   run: |
+      #     NDK_VERSION=${{ env.ANDROID_NDK_VERSION }}
+      #     NDK_ZIP=android-ndk-r26d-linux.zip
+      #     curl -L -o $NDK_ZIP "https://dl.google.com/android/repository/$NDK_ZIP"
+      #     unzip -q $NDK_ZIP -d $HOME
+      #     echo "ANDROID_NDK_HOME=$HOME/android-ndk-r26d" >> $GITHUB_ENV
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
@@ -37,19 +49,24 @@ jobs:
           rustup target add aarch64-linux-android
           rustup target add x86_64-linux-android
 
-      - name: Install cargo-ndk
-        run: cargo install cargo-ndk
+      - name: Install and verify cargo-ndk
+        run: |
+          cargo install cargo-ndk --force
+          cargo ndk --help  # verify it works
 
       - name: Build Rust library for Android
         run: |
-         cd rustEngine
-         cargo ndk --ndk $ANDROID_NDK_HOME \
-           --platform 21 \
-           --target arm64-v8a --target x86_64 \
-           --output-dir ../androidApp/app/src/main/jniLibs \
-           build --release --lib --no-default-features
+          cd rustEngine
+          # NDK path is taken from $ANDROID_NDK_HOME automatically
+          cargo ndk \
+            --platform 21 \
+            --target arm64-v8a --target x86_64 \
+            --output-dir ../androidApp/app/src/main/jniLibs \
+            build --release --lib --no-default-features
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
 
-      - name: Generate Kotlin bindings
+      - name: Generate Kotlin bindings with UniFFI
         run: |
           mkdir -p bindings-tmp
           cargo run --manifest-path rustEngine/bindgen-cli/Cargo.toml -- \
@@ -64,7 +81,7 @@ jobs:
           mkdir -p androidApp/app/src/main/java/com/telebox/app/engine
           cp bindings-tmp/*.kt androidApp/app/src/main/java/com/telebox/app/engine/
 
-      - name: Upload artifacts
+      - name: Upload generated artifacts
         uses: actions/upload-artifact@v4
         with:
           name: native-engine-artifacts

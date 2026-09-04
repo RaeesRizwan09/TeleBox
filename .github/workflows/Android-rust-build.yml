@@ -1,0 +1,45 @@
+name: Android Rust Pipeline
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-native:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK (r26d)
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "ndk;26.3.11579264"
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/26.3.11579264" >> $GITHUB_ENV
+
+      - name: Install cargo tools
+        run: |
+          cargo install cargo-ndk --locked
+          cargo install uniffi_bindgen --version 0.28.3 --locked
+
+      - name: Make script executable
+        run: chmod +x ./build_pipeline.sh
+
+      - name: Run build pipeline
+        run: ./build_pipeline.sh
+
+      - name: Build Android debug APK
+        working-directory: androidApp
+        run: ./gradlew assembleDebug

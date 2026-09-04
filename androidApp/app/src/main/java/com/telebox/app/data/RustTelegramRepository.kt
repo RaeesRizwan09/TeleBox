@@ -293,7 +293,7 @@ class RustTelegramRepository(
             name = this.name,
             size = this.size,
             sizeStr = formatBytes(this.size),
-            createdAt = this.createdAt,
+            createdAt = null,
             type = ItemType.FILE,
             iconType = this.iconType
         )

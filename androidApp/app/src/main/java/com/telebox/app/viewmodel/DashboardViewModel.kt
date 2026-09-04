@@ -360,7 +360,7 @@ class DashboardViewModel(
     private fun loadPreview(file: TelegramFile) {
         viewModelScope.launch {
             try {
-                val src = repository.getPreview(file.id, _state.value.activeFolderId)
+                val src = repository.getPreview(file.id, file.folderId ?: _state.value.activeFolderId)
                 _state.update {
                     it.copy(previewSrc = src, previewLoading = false, previewError = if (src == null) "Preview not available" else null)
                 }
@@ -573,7 +573,8 @@ class DashboardViewModel(
             )
             if (!ok) return@launch
             try {
-                repository.deleteFile(id, _state.value.activeFolderId)
+                val file = _state.value.displayedFiles.find { it.id == id }
+                repository.deleteFile(id, file?.folderId ?: _state.value.activeFolderId)
                 app.showToast("File deleted")
                 refreshFiles()
             } catch (err: Throwable) {
@@ -598,7 +599,8 @@ class DashboardViewModel(
             var success = 0
             var fail = 0
             ids.forEach { id ->
-                runCatching { repository.deleteFile(id, _state.value.activeFolderId) }
+                val file = _state.value.displayedFiles.find { it.id == id }
+                runCatching { repository.deleteFile(id, file?.folderId ?: _state.value.activeFolderId) }
                     .onSuccess { success++ }
                     .onFailure { fail++ }
             }
@@ -640,12 +642,12 @@ class DashboardViewModel(
         }
     }
 
-    fun queueDownload(messageId: Long, filename: String) {
+    fun queueDownload(messageId: Long, filename: String, folderId: Long? = _state.value.activeFolderId) {
         val item = DownloadItem(
             id = randomId(),
             messageId = messageId,
             filename = filename,
-            folderId = _state.value.activeFolderId,
+            folderId = folderId,
             status = TransferStatus.PENDING
         )
         _state.update { it.copy(downloadQueue = it.downloadQueue + item) }
@@ -884,6 +886,10 @@ class DashboardViewModel(
     fun currentFolderName(): String {
         val id = _state.value.activeFolderId ?: return "Saved Messages"
         return _state.value.folders.find { it.id == id }?.name ?: "Folder"
+    }
+
+    fun streamUrlFor(file: TelegramFile, info: StreamInfo): String {
+        return repository.streamUrl(file.folderId ?: _state.value.activeFolderId, file.id, info)
     }
 
     fun setDropBlocker(show: Boolean) {

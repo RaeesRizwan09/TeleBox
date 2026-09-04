@@ -21,7 +21,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # Manual NDK download (Option 2 – known to work)
       - name: Download and extract NDK
         run: |
           NDK_VERSION=${{ env.ANDROID_NDK_VERSION }}
@@ -31,16 +30,10 @@ jobs:
           echo "ANDROID_NDK_HOME=$HOME/android-ndk-r26d" >> $GITHUB_ENV
 
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.RUST_VERSION }}
-          override: true
-          profile: minimal
-
-      - name: Install Android Rust targets
-        run: |
-          rustup target add aarch64-linux-android
-          rustup target add x86_64-linux-android
+          targets: aarch64-linux-android, x86_64-linux-android
 
       - name: Install and verify cargo-ndk
         run: |
@@ -58,7 +51,6 @@ jobs:
         env:
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
 
-      # --- Verify the library exists and has UniFFI symbols ---
       - name: Check library file
         run: |
           echo "Library size and type:"
@@ -66,15 +58,18 @@ jobs:
           file androidApp/app/src/main/jniLibs/arm64-v8a/libapp_lib.so
           echo "Looking for UniFFI symbols..."
           nm -D androidApp/app/src/main/jniLibs/arm64-v8a/libapp_lib.so | grep -i uniffi || echo "WARNING: No UniFFI symbols found!"
-
-      # --- Build the UniFFI bindgen CLI ---
+        
       - name: Build UniFFI bindgen CLI
         run: cargo build --release --manifest-path rustEngine/bindgen-cli/Cargo.toml
-
+        
       - name: List built binary
         run: ls -la rustEngine/target/release/uniffi-bindgen-cli
-
-      # --- Generate Kotlin bindings with absolute paths and verbose output ---
+        
+      - name: Check bindgen CLI help
+        run: |
+          cd rustEngine
+          ./target/release/uniffi-bindgen-cli generate --help
+        
       - name: Generate Kotlin bindings
         run: |
           mkdir -p bindings-tmp
@@ -83,12 +78,10 @@ jobs:
             --language kotlin \
             --library "$GITHUB_WORKSPACE/androidApp/app/src/main/jniLibs/arm64-v8a/libapp_lib.so" \
             --out-dir "$GITHUB_WORKSPACE/bindings-tmp" \
-            --no-format \
-            --verbose
+            --no-format
         env:
           GITHUB_WORKSPACE: ${{ github.workspace }}
-
-      # --- List generated files ---
+        
       - name: Check generated bindings
         run: |
           echo "Contents of bindings-tmp:"
@@ -96,11 +89,9 @@ jobs:
           echo "Kotlin files:"
           find bindings-tmp -name "*.kt" -type f || echo "No .kt files generated"
 
-      # --- Move Kotlin wrappers to expected package ---
       - name: Move Kotlin wrappers
         run: |
           mkdir -p androidApp/app/src/main/java/com/telebox/app/engine
-          # Use a loop to copy any .kt files if present
           if compgen -G "bindings-tmp/*.kt" > /dev/null; then
             cp bindings-tmp/*.kt androidApp/app/src/main/java/com/telebox/app/engine/
           else
@@ -116,3 +107,4 @@ jobs:
             androidApp/app/src/main/jniLibs/
             androidApp/app/src/main/java/com/telebox/app/engine/
           if-no-files-found: error
+          

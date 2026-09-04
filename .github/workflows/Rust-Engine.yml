@@ -40,9 +40,6 @@ jobs:
       - name: Install cargo-ndk
         run: cargo install cargo-ndk
 
-      - name: Build UniFFI bindgen CLI launcher
-        run: cargo build --release --manifest-path rustEngine/bindgen-cli/Cargo.toml
-
       - name: Build Rust library for Android
         run: |
           cd rustEngine
@@ -55,7 +52,8 @@ jobs:
       - name: Generate Kotlin bindings
         run: |
           mkdir -p bindings-tmp
-          ./rustEngine/target/release/uniffi-bindgen-cli generate \
+          cargo run --manifest-path rustEngine/bindgen-cli/Cargo.toml -- \
+            generate \
             --language kotlin \
             --library androidApp/app/src/main/jniLibs/arm64-v8a/libapp_lib.so \
             --out-dir bindings-tmp \

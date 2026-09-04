@@ -1,16 +1,18 @@
 package com.telebox.app.data
 
 import android.content.Context
-import uniffi.telegram_drive_engine.* // generated UniFFI bindings
+import uniffi.telegram_drive_engine.AuthResult as EngineAuthResult
+import uniffi.telegram_drive_engine.EngineException
+import uniffi.telegram_drive_engine.FileMetadata
+import uniffi.telegram_drive_engine.TelegramDriveEngine
+import uniffi.telegram_drive_engine.TransferProgressListener
 import com.telebox.app.util.formatBytes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Real implementation of TelegramRepository that delegates to the Rust engine.
@@ -18,7 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 class RustTelegramRepository(
     private val context: Context,
-    private val preferencesStore: PreferencesStore
+    @Suppress("unused") private val preferencesStore: PreferencesStore
 ) : TelegramRepository {
 
     // ─── Engine singleton ──────────────────────────────────────────────────────────
@@ -52,62 +54,64 @@ class RustTelegramRepository(
     private val progressListener = object : TransferProgressListener {
         override fun onUploadProgress(
             id: String,
-            percent: Byte,
-            transferredBytes: Long,
-            totalBytes: Long,
-            speedBytesPerSec: Long
+            percent: UByte,
+            transferredBytes: ULong,
+            totalBytes: ULong,
+            speedBytesPerSec: ULong
         ) {
-            // percent is Byte (0-100), convert to Float
             _uploadProgress.tryEmit(
                 ProgressPayload(
                     id = id,
                     percent = percent.toFloat(),
-                    uploadedBytes = transferredBytes,
-                    totalBytes = totalBytes,
-                    speedBytesPerSec = speedBytesPerSec
+                    uploadedBytes = transferredBytes.toLong(),
+                    totalBytes = totalBytes.toLong(),
+                    speedBytesPerSec = speedBytesPerSec.toLong()
                 )
             )
         }
 
         override fun onDownloadProgress(
             id: String,
-            percent: Byte,
-            transferredBytes: Long,
-            totalBytes: Long,
-            speedBytesPerSec: Long
+            percent: UByte,
+            transferredBytes: ULong,
+            totalBytes: ULong,
+            speedBytesPerSec: ULong
         ) {
             _downloadProgress.tryEmit(
                 ProgressPayload(
                     id = id,
                     percent = percent.toFloat(),
-                    uploadedBytes = transferredBytes,
-                    totalBytes = totalBytes,
-                    speedBytesPerSec = speedBytesPerSec
+                    uploadedBytes = transferredBytes.toLong(),
+                    totalBytes = totalBytes.toLong(),
+                    speedBytesPerSec = speedBytesPerSec.toLong()
                 )
             )
         }
     }
 
-    // ─── Cancellation tracking ──────────────────────────────────────────────────
-    private val cancelledTransfers = ConcurrentHashMap.newKeySet<String>()
-
     // ─── Helper: run engine call on IO dispatcher ─────────────────────────────
-    private suspend fun <T> engineCall(block: suspend () -> T): T =
+    private suspend fun <T> engineCall(block: () -> T): T =
         withContext(Dispatchers.IO) {
             try {
                 block()
-            } catch (e: EngineError) {
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: EngineException) {
                 throw mapEngineError(e)
             } catch (e: Exception) {
-                throw RuntimeException("Engine call failed", e)
+                throw RuntimeException(e.message ?: "Engine call failed", e)
             }
         }
 
-    private fun mapEngineError(e: EngineError): Exception {
-        // Convert flat EngineError into a more specific exception if needed
-        // For simplicity, we wrap it in a generic RuntimeException.
-        // You can also check e.message for known strings like "FLOOD_WAIT_*".
+    private fun mapEngineError(e: EngineException): Exception {
         return RuntimeException(e.message ?: "Telegram engine error")
+    }
+
+    private fun EngineAuthResult.toApp(): AuthResult {
+        if (!success && nextStep == null && !error.isNullOrBlank()) {
+            throw RuntimeException(error)
+        }
+        return AuthResult(success = success, nextStep = nextStep)
     }
 
     // ─── Implement TelegramRepository methods ──────────────────────────────────
@@ -129,36 +133,16 @@ class RustTelegramRepository(
     }
 
     override suspend fun signIn(code: String): AuthResult =
-        engineCall {
-            val result = engine.signIn(code)
-            // result is AuthResult from Rust (success, nextStep, error)
-            // Convert to app's AuthResult (which has success and nextStep)
-            com.telebox.app.data.AuthResult(
-                success = result.success,
-                nextStep = result.nextStep
-            )
-        }
+        engineCall { engine.signIn(code).toApp() }
 
     override suspend fun checkPassword(password: String): AuthResult =
-        engineCall {
-            val result = engine.checkPassword(password)
-            com.telebox.app.data.AuthResult(
-                success = result.success,
-                nextStep = result.nextStep
-            )
-        }
+        engineCall { engine.checkPassword(password).toApp() }
 
     override suspend fun qrLogin(apiId: Int, apiHash: String): String =
         engineCall { engine.authQrLogin(apiId, apiHash) }
 
     override suspend fun qrPoll(): AuthResult =
-        engineCall {
-            val result = engine.authQrPoll()
-            com.telebox.app.data.AuthResult(
-                success = result.success,
-                nextStep = result.nextStep
-            )
-        }
+        engineCall { engine.authQrPoll().toApp() }
 
     override suspend fun logout() {
         engineCall { engine.logout() }
@@ -170,17 +154,15 @@ class RustTelegramRepository(
 
     override suspend fun getFiles(folderId: Long?): List<TelegramFile> =
         engineCall {
-            val rustFiles = engine.getFiles(folderId)
-            rustFiles.map { it.toTelegramFile(folderId) }
+            engine.getFiles(folderId).map { it.toTelegramFile() }
         }
 
     override suspend fun getBandwidth(): BandwidthStats =
         engineCall {
             val stats = engine.getBandwidth()
-            // stats is com.telebox.app.engine.BandwidthStats (date, upBytes, downBytes)
             com.telebox.app.data.BandwidthStats(
-                upBytes = stats.upBytes,
-                downBytes = stats.downBytes
+                upBytes = stats.upBytes.toLong(),
+                downBytes = stats.downBytes.toLong()
             )
         }
 
@@ -228,8 +210,7 @@ class RustTelegramRepository(
 
     override suspend fun searchGlobal(query: String): List<TelegramFile> =
         engineCall {
-            val rustFiles = engine.searchGlobal(query)
-            rustFiles.map { it.toTelegramFile(null) } // folderId not available from search result
+            engine.searchGlobal(query).map { it.toTelegramFile() }
         }
 
     override suspend fun uploadFile(
@@ -286,15 +267,17 @@ class RustTelegramRepository(
     }
 
     // ─── Mapping extensions ──────────────────────────────────────────────────────
-    private fun FileMetadata.toTelegramFile(folderId: Long?): TelegramFile {
+    private fun FileMetadata.toTelegramFile(): TelegramFile {
+        val sizeBytes = size.toLong()
         return TelegramFile(
-            id = this.id,
-            name = this.name,
-            size = this.size,
-            sizeStr = formatBytes(this.size),
-            createdAt = this.createdAt,
+            id = id,
+            name = name,
+            size = sizeBytes,
+            sizeStr = formatBytes(sizeBytes),
+            createdAt = createdAt,
             type = ItemType.FILE,
-            iconType = this.iconType
+            iconType = iconType,
+            folderId = folderId
         )
     }
 }

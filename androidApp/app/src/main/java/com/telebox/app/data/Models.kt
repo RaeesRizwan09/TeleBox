@@ -65,7 +65,8 @@ data class TelegramFile(
     val sizeStr: String,
     val createdAt: String? = null,
     val type: ItemType = ItemType.FILE,
-    val iconType: String? = null
+    val iconType: String? = null,
+    val folderId: Long? = null
 )
 
 data class TelegramFolder(

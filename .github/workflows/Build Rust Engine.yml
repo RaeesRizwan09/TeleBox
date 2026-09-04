@@ -1,14 +1,7 @@
 name: Build Rust Engine (Android)
 
 on:
-  workflow_dispatch:               # manual trigger
-  push:
-    paths:
-      - 'rustEngine/**'            # run when Rust source changes
-      - 'build_pipeline.sh'
-  pull_request:
-    paths:
-      - 'rustEngine/**'
+  workflow_dispatch:
 
 env:
   RUST_VERSION: stable

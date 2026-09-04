@@ -23,13 +23,13 @@ jobs:
 
       # Option 2: If the action fails, fall back to manual download
       # (uncomment if needed)
-       - name: Download and set NDK manually
-         run: |
-           NDK_VERSION=${{ env.ANDROID_NDK_VERSION }}
-           NDK_ZIP=android-ndk-r26d-linux.zip
-           curl -L -o $NDK_ZIP "https://dl.google.com/android/repository/$NDK_ZIP"
-           unzip -q $NDK_ZIP -d $HOME
-           echo "ANDROID_NDK_HOME=$HOME/android-ndk-r26d" >> $GITHUB_ENV
+      - name: Download and set NDK manually
+        run: |
+          NDK_VERSION=${{ env.ANDROID_NDK_VERSION }}
+          NDK_ZIP=android-ndk-r26d-linux.zip
+          curl -L -o $NDK_ZIP "https://dl.google.com/android/repository/$NDK_ZIP"
+          unzip -q $NDK_ZIP -d $HOME
+          echo "ANDROID_NDK_HOME=$HOME/android-ndk-r26d" >> $GITHUB_ENV
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1

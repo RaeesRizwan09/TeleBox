@@ -51,7 +51,7 @@ fun FileExplorer(
     onFileClick: (Long, Boolean) -> Unit,
     onToggleSelection: (Long) -> Unit,
     onDelete: (Long) -> Unit,
-    onDownload: (Long, String) -> Unit,
+    onDownload: (Long, String, Long?) -> Unit,
     onPreview: (TelegramFile) -> Unit,
     onManualUpload: () -> Unit,
     onContextMenu: (TelegramFile) -> Unit,
@@ -109,7 +109,7 @@ fun FileExplorer(
                                     onClick = { onFileClick(file.id, false) },
                                     onLongClick = { onContextMenu(file) },
                                     onDelete = { onDelete(file.id) },
-                                    onDownload = { onDownload(file.id, file.name) },
+                                    onDownload = { onDownload(file.id, file.name, file.folderId) },
                                     onPreview = { onPreview(file) },
                                     onToggleSelection = { onToggleSelection(file.id) }
                                 )
@@ -150,7 +150,7 @@ fun FileExplorer(
                                 onClick = { onFileClick(file.id, false) },
                                 onLongClick = { onContextMenu(file) },
                                 onPreview = { onPreview(file) },
-                                onDownload = { onDownload(file.id, file.name) },
+                                onDownload = { onDownload(file.id, file.name, file.folderId) },
                                 onDelete = { onDelete(file.id) }
                             )
                         }

@@ -21,6 +21,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      # Manual NDK download (Option 2 – known to work)
       - name: Download and extract NDK
         run: |
           NDK_VERSION=${{ env.ANDROID_NDK_VERSION }}
@@ -30,10 +31,16 @@ jobs:
           echo "ANDROID_NDK_HOME=$HOME/android-ndk-r26d" >> $GITHUB_ENV
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@master
+        uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ env.RUST_VERSION }}
-          targets: aarch64-linux-android, x86_64-linux-android
+          override: true
+          profile: minimal
+
+      - name: Install Android Rust targets
+        run: |
+          rustup target add aarch64-linux-android
+          rustup target add x86_64-linux-android
 
       - name: Install and verify cargo-ndk
         run: |
@@ -51,6 +58,7 @@ jobs:
         env:
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
 
+      # --- Verify the library exists and has UniFFI symbols ---
       - name: Check library file
         run: |
           echo "Library size and type:"
@@ -61,15 +69,15 @@ jobs:
         
       - name: Build UniFFI bindgen CLI
         run: cargo build --release --manifest-path rustEngine/bindgen-cli/Cargo.toml
-        
+      
       - name: List built binary
         run: ls -la rustEngine/target/release/uniffi-bindgen-cli
-        
+      
       - name: Check bindgen CLI help
         run: |
           cd rustEngine
           ./target/release/uniffi-bindgen-cli generate --help
-        
+      
       - name: Generate Kotlin bindings
         run: |
           mkdir -p bindings-tmp
@@ -81,7 +89,7 @@ jobs:
             --no-format
         env:
           GITHUB_WORKSPACE: ${{ github.workspace }}
-        
+      
       - name: Check generated bindings
         run: |
           echo "Contents of bindings-tmp:"
@@ -89,11 +97,12 @@ jobs:
           echo "Kotlin files:"
           find bindings-tmp -name "*.kt" -type f || echo "No .kt files generated"
 
+      # --- Move Kotlin wrappers to expected package ---
       - name: Move Kotlin wrappers
         run: |
           mkdir -p androidApp/app/src/main/java/com/telebox/app/engine
-          if compgen -G "bindings-tmp/*.kt" > /dev/null; then
-            cp bindings-tmp/*.kt androidApp/app/src/main/java/com/telebox/app/engine/
+          if [ -n "$(find bindings-tmp -name '*.kt' -print -quit)" ]; then
+            find bindings-tmp -name '*.kt' -exec cp {} androidApp/app/src/main/java/com/telebox/app/engine/ \;
           else
             echo "No .kt files to copy – generation failed!"
             exit 1

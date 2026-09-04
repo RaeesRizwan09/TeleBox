@@ -1,7 +1,8 @@
 package com.telebox.app.data
 
 import android.content.Context
-import com.telebox.app.engine.*          // generated UniFFI bindings
+import com.telebox.app.engine.*
+import uniffi.telegram_drive_engine.TelegramDriveEngine // generated UniFFI bindings
 import com.telebox.app.util.formatBytes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow

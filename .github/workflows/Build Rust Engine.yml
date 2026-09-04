@@ -1,0 +1,107 @@
+name: Build Rust Engine (Android)
+
+on:
+  workflow_dispatch:               # manual trigger
+  push:
+    paths:
+      - 'rustEngine/**'            # run when Rust source changes
+      - 'build_pipeline.sh'
+  pull_request:
+    paths:
+      - 'rustEngine/**'
+
+env:
+  RUST_VERSION: stable
+  UNIFFI_VERSION: 0.28
+  ANDROID_NDK_VERSION: 26.3.11579262  # adjust to your NDK version
+  JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17 (for Android build tools)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: ${{ env.ANDROID_NDK_VERSION }}
+          add-to-path: false
+          local-cache: true
+
+      - name: Set environment variables
+        run: |
+          echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          override: true
+          profile: minimal
+
+      - name: Install Android Rust targets
+        run: |
+          rustup target add aarch64-linux-android
+          rustup target add x86_64-linux-android
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk
+
+      - name: Install uniffi-bindgen (version ${{ env.UNIFFI_VERSION }})
+        run: cargo install uniffi_bindgen --version ${{ env.UNIFFI_VERSION }}.*
+
+      - name: Build Rust library for Android (ABIs: arm64-v8a, x86_64)
+        run: |
+          cd rustEngine
+          cargo ndk --ndk-path $ANDROID_NDK_HOME \
+            --platform 21 \
+            --target arm64-v8a --target x86_64 \
+            --output-dir ../androidApp/app/src/main/jniLibs \
+            build --release --lib --no-default-features
+
+      - name: Generate Kotlin bindings with UniFFI
+        run: |
+          # The library is now in jniLibs/arm64-v8a/libapp_lib.so
+          mkdir -p bindings-tmp
+          uniffi-bindgen generate \
+            --language kotlin \
+            --library androidApp/app/src/main/jniLibs/arm64-v8a/libapp_lib.so \
+            --out-dir bindings-tmp \
+            --no-format
+
+      - name: Move Kotlin wrappers to expected package
+        run: |
+          mkdir -p androidApp/app/src/main/java/com/telebox/app/engine
+          cp bindings-tmp/*.kt androidApp/app/src/main/java/com/telebox/app/engine/
+
+      - name: Upload generated artifacts (optional)
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-engine-artifacts
+          path: |
+            androidApp/app/src/main/jniLibs/
+            androidApp/app/src/main/java/com/telebox/app/engine/
+          if-no-files-found: error
+
+      - name: Commit and push changes (optional)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add androidApp/app/src/main/jniLibs/ androidApp/app/src/main/java/com/telebox/app/engine/
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Update Rust engine bindings and native libraries"
+            git push origin HEAD:${{ github.ref_name }}
+          fi

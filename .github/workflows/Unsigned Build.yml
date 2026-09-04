@@ -17,12 +17,16 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Make Gradle Wrapper Executable
-        run: chmod +x androidApp/gradlew
-
-      - name: Build Unsigned Release APK
+      - name: Generate Wrapper and Build APK
         run: |
           cd androidApp
+          # Generate the missing gradlew script using system Gradle
+          gradle wrapper
+          
+          # Make it executable
+          chmod +x gradlew
+          
+          # Build the unsigned release APK
           ./gradlew assembleRelease
 
       - name: Upload APK Artifact

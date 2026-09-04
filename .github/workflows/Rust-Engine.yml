@@ -26,16 +26,19 @@ jobs:
         id: cache-ndk
         uses: actions/cache@v4
         with:
-          path: /usr/local/lib/android/sdk/ndk/${{ env.ANDROID_NDK_VERSION }}
+          path: ~/android-ndk-r26d
           key: ${{ runner.os }}-ndk-${{ env.ANDROID_NDK_VERSION }}
 
-      - name: Install Android NDK via SDKManager (Runs only if Cache Misses)
+      - name: Download NDK (Runs only if Cache Misses)
         if: steps.cache-ndk.outputs.cache-hit != 'true'
         run: |
-          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;${{ env.ANDROID_NDK_VERSION }}"
+          NDK_ZIP=android-ndk-r26d-linux.zip
+          curl -L -o $NDK_ZIP "https://google.com"
+          unzip -q $NDK_ZIP -d $HOME
+          rm $NDK_ZIP
 
       - name: Set NDK Environment Path
-        run: echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${{ env.ANDROID_NDK_VERSION }}" >> $GITHUB_ENV
+        run: echo "ANDROID_NDK_HOME=$HOME/android-ndk-r26d" >> $GITHUB_ENV
       # --- END INSTANT NDK CACHE LAYER ---
 
       - name: Install Rust toolchain

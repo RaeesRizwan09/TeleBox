@@ -119,12 +119,12 @@ fun DashboardScreen(
                     onShowMoveModal = { viewModel.showMoveModal(true) },
                     onBulkDownload = {
                         state.displayedFiles.filter { it.id in state.selectedIds }.forEach {
-                            viewModel.queueDownload(it.id, it.name)
+                            viewModel.queueDownload(it.id, it.name, it.folderId)
                         }
                     },
                     onBulkDelete = viewModel::bulkDelete,
                     onDownloadFolder = {
-                        state.displayedFiles.forEach { viewModel.queueDownload(it.id, it.name) }
+                        state.displayedFiles.forEach { viewModel.queueDownload(it.id, it.name, it.folderId) }
                     },
                     onToggleViewMode = viewModel::toggleViewMode,
                     onToggleTheme = onToggleTheme
@@ -150,7 +150,7 @@ fun DashboardScreen(
                     onFileClick = { id, additive -> viewModel.onFileClick(id, additive) },
                     onToggleSelection = viewModel::toggleSelection,
                     onDelete = viewModel::deleteFile,
-                    onDownload = { id, name -> viewModel.queueDownload(id, name) },
+                    onDownload = { id, name, folderId -> viewModel.queueDownload(id, name, folderId) },
                     onPreview = { file ->
                         if (file.type == ItemType.FOLDER) viewModel.setActiveFolder(file.id)
                         else viewModel.openPreview(file)
@@ -173,8 +173,7 @@ fun DashboardScreen(
 
         state.playingFile?.let { file ->
             val url = state.streamInfo?.let { info ->
-                val folderParam = state.activeFolderId?.toString() ?: "home"
-                "${info.baseUrl}/stream/$folderParam/${file.id}?token=${info.token}"
+                viewModel.streamUrlFor(file, info)
             }
             MediaPlayerDialog(
                 file = file,
@@ -265,7 +264,7 @@ fun DashboardScreen(
                         viewModel.hideContextMenu()
                     },
                     onDownload = {
-                        viewModel.queueDownload(menu.file.id, menu.file.name)
+                        viewModel.queueDownload(menu.file.id, menu.file.name, menu.file.folderId)
                         viewModel.hideContextMenu()
                     },
                     onDelete = {

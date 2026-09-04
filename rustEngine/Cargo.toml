@@ -16,7 +16,6 @@ default = ["streaming-server"]
 streaming-server = ["dep:actix-web", "dep:actix-cors", "dep:actix-rt", "dep:async-stream"]
 
 [dependencies]
-uniffi = "0.28.3"
 # -- MTProto (Telegram) client runtime ---------------------------------------
 grammers-client = { git = "https://github.com/Lonami/grammers", rev = "d07f96f" }
 grammers-session = { git = "https://github.com/Lonami/grammers", rev = "d07f96f" }
@@ -26,7 +25,7 @@ grammers-tl-types = { git = "https://github.com/Lonami/grammers", rev = "d07f96f
 tokio = { version = "1", features = ["full"] }
 
 # -- Foreign-function interface ----------------------------------------------
-uniffi = { version = "0.28", features = ["tokio"] }
+uniffi = { version = "0.28", features = ["tokio"] }   # <-- only one, with tokio
 
 # -- Serialization / helpers -------------------------------------------------
 serde = { version = "1", features = ["derive"] }
@@ -44,4 +43,11 @@ actix-rt = { version = "2", optional = true }
 async-stream = { version = "0.3", optional = true }
 
 [dev-dependencies]
+# The `uniffi_bindgen` library is not needed as a dev dependency;
+# we use the local `bindgen-cli` binary crate. Keeping it here is harmless
+# but it can be removed. I'll keep it for compatibility.
 uniffi_bindgen = "0.28.3"
+
+# ----- ADD THIS TO MAKE BINDGEN-CLI PART OF THE WORKSPACE -----
+[workspace]
+members = ["bindgen-cli"]

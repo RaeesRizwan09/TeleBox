@@ -1,0 +1,51 @@
+package com.telebox.app.ui.theme
+
+import androidx.compose.ui.graphics.Color
+
+val TelegramBgDark = Color(0xFF0E1621)
+val TelegramSurfaceDark = Color(0xFF17212B)
+val TelegramPrimaryDark = Color(0xFFFFAE00)
+val TelegramSecondaryDark = Color(0xFF2481CC)
+val TelegramTextDark = Color(0xFFFFFFFF)
+val TelegramSubtextDark = Color(0xFF8E9FB3)
+val TelegramBorderDark = Color(0x1AFFFFFF)
+val TelegramHoverDark = Color(0x0DFFFFFF)
+val TelegramGlassDark = Color(0xB317212B)
+val TelegramAuthGlassDark = Color(0xD917212B)
+val TelegramGlassInputDark = Color(0x990E1621)
+
+val TelegramBgLight = Color(0xFFF0F2F5)
+val TelegramSurfaceLight = Color(0xFFFFFFFF)
+val TelegramPrimaryLight = Color(0xFFE69500)
+val TelegramSecondaryLight = Color(0xFF2481CC)
+val TelegramTextLight = Color(0xFF1A1A1A)
+val TelegramSubtextLight = Color(0xFF65676B)
+val TelegramBorderLight = Color(0x1A000000)
+val TelegramHoverLight = Color(0x08000000)
+val TelegramGlassLight = Color(0xD9FFFFFF)
+val TelegramAuthGlassLight = Color(0xE6FFFFFF)
+val TelegramGlassInputLight = Color(0xE6FFFFFF)
+
+val AuthGradientStartDark = Color(0xFF3CA5FF)
+val AuthGradientEndDark = Color(0xFF007AFF)
+val AuthGradientStartLight = Color(0xFF3B82F6)
+val AuthGradientEndLight = Color(0xFF06B6D4)
+
+val Danger = Color(0xFFEF4444)
+val DangerSoft = Color(0x1AEF4444)
+val Success = Color(0xFF22C55E)
+val Warning = Color(0xFFEAB308)
+val InfoBlue = Color(0xFF3B82F6)
+
+val FileImage = Color(0xFFF472B6)
+val FileVideo = Color(0xFFC084FC)
+val FileAudio = Color(0xFF4ADE80)
+val FilePdf = Color(0xFFF87171)
+val FileDocument = Color(0xFF60A5FA)
+val FileText = Color(0xFF9CA3AF)
+val FileSpreadsheet = Color(0xFF22C55E)
+val FilePresentation = Color(0xFFFB923C)
+val FileArchive = Color(0xFFFACC15)
+val FileCode = Color(0xFFFDE047)
+
+val ConfirmSurface = Color(0xFF1C1C1C)

@@ -16,6 +16,7 @@ default = ["streaming-server"]
 streaming-server = ["dep:actix-web", "dep:actix-cors", "dep:actix-rt", "dep:async-stream"]
 
 [dependencies]
+uniffi = "0.28.3"
 # -- MTProto (Telegram) client runtime ---------------------------------------
 grammers-client = { git = "https://github.com/Lonami/grammers", rev = "d07f96f" }
 grammers-session = { git = "https://github.com/Lonami/grammers", rev = "d07f96f" }

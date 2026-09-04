@@ -1,13 +1,11 @@
 name: Build Rust Engine (Android)
 
 on:
-  workflow_dispatch:   # manual trigger only
+  workflow_dispatch:
 
 env:
   RUST_VERSION: stable
   UNIFFI_VERSION: 0.28
-  ANDROID_NDK_VERSION: 26.3.11579262
-  JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
 
 jobs:
   build:
@@ -23,15 +21,10 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Android SDK
+      - name: Set up Android SDK & NDK
         uses: android-actions/setup-android@v3
         with:
           ndk-version: 26.3.11579262
-
-      - name: Set environment variables
-        run: |
-          echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
-          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
@@ -48,8 +41,8 @@ jobs:
       - name: Install cargo-ndk
         run: cargo install cargo-ndk
 
-      - name: Install uniffi-bindgen (version ${{ env.UNIFFI_VERSION }})
-        run: cargo install uniffi_bindgen --version ${{ env.UNIFFI_VERSION }}.*
+      - name: Install UniFFI bindgen CLI
+        run: cargo install uniffi --version 0.28.3 --features=cli
 
       - name: Build Rust library for Android
         run: |
@@ -60,7 +53,7 @@ jobs:
             --output-dir ../androidApp/app/src/main/jniLibs \
             build --release --lib --no-default-features
 
-      - name: Generate Kotlin bindings with UniFFI
+      - name: Generate Kotlin bindings
         run: |
           mkdir -p bindings-tmp
           uniffi-bindgen generate \
@@ -74,7 +67,7 @@ jobs:
           mkdir -p androidApp/app/src/main/java/com/telebox/app/engine
           cp bindings-tmp/*.kt androidApp/app/src/main/java/com/telebox/app/engine/
 
-      - name: Upload generated artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: native-engine-artifacts

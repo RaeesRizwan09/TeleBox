@@ -57,7 +57,9 @@ impl BandwidthManager {
             stats.date = today;
             stats.up_bytes = 0;
             stats.down_bytes = 0;
-            if let Ok(json) = serde_json::to_string(&self.stats.lock().unwrap().clone()) { let _ = fs::write(&self.file_path, json); }
+            if let Ok(json) = serde_json::to_string(&*stats) {
+                let _ = fs::write(&self.file_path, json);
+            }
         }
     }
 

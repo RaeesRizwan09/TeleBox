@@ -1,12 +1,12 @@
 name: Build Rust Engine (Android)
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:   # manual trigger only
 
 env:
   RUST_VERSION: stable
   UNIFFI_VERSION: 0.28
-  ANDROID_NDK_VERSION: 26.3.11579262  # adjust to your NDK version
+  ANDROID_NDK_VERSION: 26.3.11579262
   JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
 
 jobs:
@@ -17,7 +17,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17 (for Android build tools)
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -53,7 +53,7 @@ jobs:
       - name: Install uniffi-bindgen (version ${{ env.UNIFFI_VERSION }})
         run: cargo install uniffi_bindgen --version ${{ env.UNIFFI_VERSION }}.*
 
-      - name: Build Rust library for Android (ABIs: arm64-v8a, x86_64)
+      - name: Build Rust library for Android
         run: |
           cd rustEngine
           cargo ndk --ndk-path $ANDROID_NDK_HOME \
@@ -64,7 +64,6 @@ jobs:
 
       - name: Generate Kotlin bindings with UniFFI
         run: |
-          # The library is now in jniLibs/arm64-v8a/libapp_lib.so
           mkdir -p bindings-tmp
           uniffi-bindgen generate \
             --language kotlin \
@@ -77,7 +76,7 @@ jobs:
           mkdir -p androidApp/app/src/main/java/com/telebox/app/engine
           cp bindings-tmp/*.kt androidApp/app/src/main/java/com/telebox/app/engine/
 
-      - name: Upload generated artifacts (optional)
+      - name: Upload generated artifacts
         uses: actions/upload-artifact@v4
         with:
           name: native-engine-artifacts
@@ -85,17 +84,3 @@ jobs:
             androidApp/app/src/main/jniLibs/
             androidApp/app/src/main/java/com/telebox/app/engine/
           if-no-files-found: error
-
-      - name: Commit and push changes (optional)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add androidApp/app/src/main/jniLibs/ androidApp/app/src/main/java/com/telebox/app/engine/
-          if git diff --staged --quiet; then
-            echo "No changes to commit."
-          else
-            git commit -m "Update Rust engine bindings and native libraries"
-            git push origin HEAD:${{ github.ref_name }}
-          fi
-          

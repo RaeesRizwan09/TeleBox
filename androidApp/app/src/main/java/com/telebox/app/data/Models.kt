@@ -37,6 +37,49 @@ enum class ViewMode {
     LIST
 }
 
+enum class LibrarySection {
+    ALL,
+    VIDEOS,
+    PICTURES,
+    DOCUMENTS,
+    OTHERS
+}
+
+data class LibraryStats(
+    val videosCount: Int = 0,
+    val videosBytes: Long = 0L,
+    val picturesCount: Int = 0,
+    val picturesBytes: Long = 0L,
+    val documentsCount: Int = 0,
+    val documentsBytes: Long = 0L,
+    val othersCount: Int = 0,
+    val othersBytes: Long = 0L
+) {
+    fun countFor(section: LibrarySection): Int = when (section) {
+        LibrarySection.ALL -> videosCount + picturesCount + documentsCount + othersCount
+        LibrarySection.VIDEOS -> videosCount
+        LibrarySection.PICTURES -> picturesCount
+        LibrarySection.DOCUMENTS -> documentsCount
+        LibrarySection.OTHERS -> othersCount
+    }
+
+    fun bytesFor(section: LibrarySection): Long = when (section) {
+        LibrarySection.ALL -> videosBytes + picturesBytes + documentsBytes + othersBytes
+        LibrarySection.VIDEOS -> videosBytes
+        LibrarySection.PICTURES -> picturesBytes
+        LibrarySection.DOCUMENTS -> documentsBytes
+        LibrarySection.OTHERS -> othersBytes
+    }
+}
+
+data class LocalDownload(
+    val path: String,
+    val name: String,
+    val size: Long,
+    val sizeStr: String,
+    val modifiedAt: Long
+)
+
 enum class SortField {
     NAME,
     SIZE,
@@ -97,7 +140,8 @@ data class DownloadItem(
     val progress: Float? = null,
     val uploadedBytes: Long? = null,
     val totalBytes: Long? = null,
-    val speedBytesPerSec: Long? = null
+    val speedBytesPerSec: Long? = null,
+    val localPath: String? = null
 )
 
 data class BandwidthStats(

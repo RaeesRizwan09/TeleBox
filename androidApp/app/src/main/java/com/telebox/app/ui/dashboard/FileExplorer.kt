@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.telebox.app.data.LibrarySection
 import com.telebox.app.data.SortDirection
 import com.telebox.app.data.SortField
 import com.telebox.app.data.TelegramFile
@@ -44,6 +45,7 @@ fun FileExplorer(
     sortField: SortField,
     sortDirection: SortDirection,
     compact: Boolean,
+    librarySection: LibrarySection = LibrarySection.ALL,
     onSort: (SortField) -> Unit,
     onOpen: (TelegramFile) -> Unit,
     onToggleSelection: (Long) -> Unit,
@@ -93,8 +95,15 @@ fun FileExplorer(
             }
         }
         files.isEmpty() -> {
+            val (title, subtitle) = when (librarySection) {
+                LibrarySection.VIDEOS -> "No videos here" to "Video files in this folder will appear in this library."
+                LibrarySection.PICTURES -> "No pictures here" to "Images in this folder will appear in this library."
+                LibrarySection.DOCUMENTS -> "No documents here" to "PDFs, office files, and text documents will appear here."
+                LibrarySection.OTHERS -> "Nothing in Others" to "Archives, audio, code, and unclassified files will appear here."
+                LibrarySection.ALL -> "This folder is empty" to "Tap the upload button to add files from your device."
+            }
             Box(modifier = Modifier.fillMaxSize()) {
-                EmptyState()
+                EmptyState(title = title, subtitle = subtitle)
             }
         }
         else -> {

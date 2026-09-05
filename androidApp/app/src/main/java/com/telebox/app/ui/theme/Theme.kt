@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import androidx.compose.ui.graphics.SolidColor
 
 @Immutable
 data class TeleBoxExtendedColors(
@@ -75,7 +76,7 @@ val LocalTeleBoxColors = staticCompositionLocalOf {
         glass = SurfaceContainerDark.copy(alpha = 0.92f),
         authGlass = SurfaceContainerDark.copy(alpha = 0.88f),
         glassInput = SurfaceContainerLowestDark.copy(alpha = 0.72f),
-        authGradient = Brush.solidColor(AuthGradientEndDark),
+        authGradient = SolidColor(AuthGradientEndDark),
         danger = ErrorDark,
         dangerSoft = ErrorDark.copy(alpha = 0.16f),
         success = SuccessDark,

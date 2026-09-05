@@ -1105,7 +1105,7 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_app_lib_checksum_method_telegramdriveengine_delete_folder() != 36717.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_app_lib_checksum_method_telegramdriveengine_download_file() != 11011.toShort()) {
+    if (lib.uniffi_app_lib_checksum_method_telegramdriveengine_download_file() != 14241.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_app_lib_checksum_method_telegramdriveengine_get_bandwidth() != 30656.toShort()) {
@@ -1156,7 +1156,7 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_app_lib_checksum_method_telegramdriveengine_start_streaming_server() != 46831.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_app_lib_checksum_method_telegramdriveengine_upload_file() != 21421.toShort()) {
+    if (lib.uniffi_app_lib_checksum_method_telegramdriveengine_upload_file() != 46947.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_app_lib_checksum_constructor_telegramdriveengine_new() != 21344.toShort()) {
@@ -1621,6 +1621,8 @@ public interface TelegramDriveEngineInterface {
     
     /**
      * Download a file (by message id) to `save_path`.
+     * `save_path` may be a directory (e.g. Downloads) or a full file path.
+     * Parent directories are created. Returns the final filesystem path.
      * `transfer_id` may be empty; when supplied it enables progress + cancel.
      */
     fun `downloadFile`(`messageId`: kotlin.Int, `folderId`: kotlin.Long?, `savePath`: kotlin.String, `transferId`: kotlin.String): kotlin.String
@@ -1718,6 +1720,8 @@ public interface TelegramDriveEngineInterface {
     
     /**
      * Upload a local file into the given folder.
+     * `path` must be a real filesystem path (Android: copy `content://` URIs
+     * into cache/files first). `file://` URIs are accepted and decoded.
      * `transfer_id` is a client-generated correlation id (may be empty) that
      * `cancel_transfer` uses to abort the transfer.
      */
@@ -1994,6 +1998,8 @@ open class TelegramDriveEngine: Disposable, AutoCloseable, TelegramDriveEngineIn
     
     /**
      * Download a file (by message id) to `save_path`.
+     * `save_path` may be a directory (e.g. Downloads) or a full file path.
+     * Parent directories are created. Returns the final filesystem path.
      * `transfer_id` may be empty; when supplied it enables progress + cancel.
      */
     @Throws(EngineException::class)override fun `downloadFile`(`messageId`: kotlin.Int, `folderId`: kotlin.Long?, `savePath`: kotlin.String, `transferId`: kotlin.String): kotlin.String {
@@ -2272,6 +2278,8 @@ open class TelegramDriveEngine: Disposable, AutoCloseable, TelegramDriveEngineIn
     
     /**
      * Upload a local file into the given folder.
+     * `path` must be a real filesystem path (Android: copy `content://` URIs
+     * into cache/files first). `file://` URIs are accepted and decoded.
      * `transfer_id` is a client-generated correlation id (may be empty) that
      * `cancel_transfer` uses to abort the transfer.
      */

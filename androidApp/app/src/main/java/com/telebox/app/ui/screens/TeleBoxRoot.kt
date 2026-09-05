@@ -4,6 +4,8 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -50,58 +52,63 @@ fun TeleBoxRoot() {
     val dashboardState by dashboardViewModel.state.collectAsStateWithLifecycle()
 
     TeleBoxTheme(darkTheme = theme == AppThemeMode.DARK) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            if (fatal != null) {
-                ErrorScreen(error = fatal, onReload = appViewModel::clearFatal)
-            } else {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    UpdateBanner(
-                        state = updateState,
-                        onUpdate = updateViewModel::downloadAndInstall,
-                        onDismiss = updateViewModel::dismissUpdate
-                    )
-                    when (authStatus) {
-                        AuthStatus.LOADING -> SplashScreen()
-                        AuthStatus.AUTHENTICATED -> DashboardScreen(
-                            state = dashboardState,
-                            viewModel = dashboardViewModel,
-                            theme = theme,
-                            onToggleTheme = themeViewModel::toggleTheme
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (fatal != null) {
+                    ErrorScreen(error = fatal, onReload = appViewModel::clearFatal)
+                } else {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        UpdateBanner(
+                            state = updateState,
+                            onUpdate = updateViewModel::downloadAndInstall,
+                            onDismiss = updateViewModel::dismissUpdate
                         )
-                        AuthStatus.UNAUTHENTICATED -> AuthWizardScreen(
-                            state = authState,
-                            theme = theme,
-                            onToggleTheme = themeViewModel::toggleTheme,
-                            onApiIdChange = authViewModel::onApiIdChange,
-                            onApiHashChange = authViewModel::onApiHashChange,
-                            onPhoneChange = authViewModel::onPhoneChange,
-                            onCodeChange = authViewModel::onCodeChange,
-                            onPasswordChange = authViewModel::onPasswordChange,
-                            onSetupSubmit = authViewModel::submitSetup,
-                            onPhoneSubmit = authViewModel::submitPhone,
-                            onCodeSubmit = { authViewModel.submitCode(appViewModel::onLogin) },
-                            onPasswordSubmit = { authViewModel.submitPassword(appViewModel::onLogin) },
-                            onStartQr = authViewModel::startQrLogin,
-                            onSwitchPhone = authViewModel::switchToPhone,
-                            onRefreshQr = authViewModel::refreshQr,
-                            onGoSetup = authViewModel::goToSetup,
-                            onGoPhone = authViewModel::goToPhone,
-                            onGoCode = authViewModel::goToCode,
-                            onShowHelp = authViewModel::setShowHelp,
-                            onShowDonate = authViewModel::setShowDonate,
-                            onQrPoll = { authViewModel.startQrPolling(appViewModel::onLogin) },
-                            onDevLogin = appViewModel::onLogin
-                        )
+                        when (authStatus) {
+                            AuthStatus.LOADING -> SplashScreen()
+                            AuthStatus.AUTHENTICATED -> DashboardScreen(
+                                state = dashboardState,
+                                viewModel = dashboardViewModel,
+                                theme = theme,
+                                onToggleTheme = themeViewModel::toggleTheme
+                            )
+                            AuthStatus.UNAUTHENTICATED -> AuthWizardScreen(
+                                state = authState,
+                                theme = theme,
+                                onToggleTheme = themeViewModel::toggleTheme,
+                                onApiIdChange = authViewModel::onApiIdChange,
+                                onApiHashChange = authViewModel::onApiHashChange,
+                                onPhoneChange = authViewModel::onPhoneChange,
+                                onCodeChange = authViewModel::onCodeChange,
+                                onPasswordChange = authViewModel::onPasswordChange,
+                                onSetupSubmit = authViewModel::submitSetup,
+                                onPhoneSubmit = authViewModel::submitPhone,
+                                onCodeSubmit = { authViewModel.submitCode(appViewModel::onLogin) },
+                                onPasswordSubmit = { authViewModel.submitPassword(appViewModel::onLogin) },
+                                onStartQr = authViewModel::startQrLogin,
+                                onSwitchPhone = authViewModel::switchToPhone,
+                                onRefreshQr = authViewModel::refreshQr,
+                                onGoSetup = authViewModel::goToSetup,
+                                onGoPhone = authViewModel::goToPhone,
+                                onGoCode = authViewModel::goToCode,
+                                onShowHelp = authViewModel::setShowHelp,
+                                onShowDonate = authViewModel::setShowDonate,
+                                onQrPoll = { authViewModel.startQrPolling(appViewModel::onLogin) },
+                                onDevLogin = appViewModel::onLogin
+                            )
+                        }
                     }
                 }
-            }
-            ToastHost(toasts = toasts, onDismiss = appViewModel::dismissToast)
-            confirmOptions?.let { options ->
-                ConfirmDialog(
-                    options = options,
-                    onConfirm = confirmViewModel::onConfirm,
-                    onCancel = confirmViewModel::onCancel
-                )
+                ToastHost(toasts = toasts, onDismiss = appViewModel::dismissToast)
+                confirmOptions?.let { options ->
+                    ConfirmDialog(
+                        options = options,
+                        onConfirm = confirmViewModel::onConfirm,
+                        onCancel = confirmViewModel::onCancel
+                    )
+                }
             }
         }
     }

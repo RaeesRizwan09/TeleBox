@@ -21,8 +21,10 @@ import com.telebox.app.data.TransferStatus
 import com.telebox.app.data.ViewMode
 import com.telebox.app.util.isMediaFile
 import com.telebox.app.util.isPdfFile
+import com.telebox.app.util.materializeForUpload
 import com.telebox.app.util.randomId
 import com.telebox.app.util.withFormattedSize
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +32,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class DashboardUiState(
     val folders: List<TelegramFolder> = emptyList(),
@@ -655,21 +658,34 @@ class DashboardViewModel(
         processNextDownload()
     }
 
-    fun queueUploads(uris: List<Uri>, resolverPath: (Uri) -> String?) {
-        val items = uris.mapNotNull { uri ->
-            val path = resolverPath(uri) ?: return@mapNotNull null
-            QueueItem(
-                id = randomId(),
-                path = path,
-                folderId = _state.value.activeFolderId,
-                status = TransferStatus.PENDING
-            )
+    fun queueUploads(uris: List<Uri>) {
+        if (uris.isEmpty()) return
+        val folderId = _state.value.activeFolderId
+        viewModelScope.launch {
+            val items = withContext(Dispatchers.IO) {
+                val context = getApplication<Application>()
+                uris.mapNotNull { uri ->
+                    val path = materializeForUpload(context, uri) ?: return@mapNotNull null
+                    QueueItem(
+                        id = randomId(),
+                        path = path,
+                        folderId = folderId,
+                        status = TransferStatus.PENDING
+                    )
+                }
+            }
+            if (items.isEmpty()) {
+                app.showToast("Could not copy picked file(s)", isError = true)
+                return@launch
+            }
+            if (items.size < uris.size) {
+                app.showToast("Could not copy ${uris.size - items.size} file(s)", isError = true)
+            }
+            _state.update { it.copy(uploadQueue = it.uploadQueue + items) }
+            persistUploads()
+            app.showToast("Queued ${items.size} files for upload")
+            processNextUpload()
         }
-        if (items.isEmpty()) return
-        _state.update { it.copy(uploadQueue = it.uploadQueue + items) }
-        persistUploads()
-        app.showToast("Queued ${items.size} files for upload")
-        processNextUpload()
     }
 
     fun cancelAllUploads() {

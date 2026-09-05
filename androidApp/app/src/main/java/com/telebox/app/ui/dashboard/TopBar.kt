@@ -2,17 +2,22 @@ package com.telebox.app.ui.dashboard
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CleaningServices
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.DownloadDone
 import androidx.compose.material.icons.outlined.DriveFileMove
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.ViewList
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,6 +48,8 @@ fun TopBar(
     theme: AppThemeMode,
     showMenu: Boolean,
     searchExpanded: Boolean,
+    transferCount: Int,
+    downloadedCount: Int,
     onSearchExpandedChange: (Boolean) -> Unit,
     onSearchChange: (String) -> Unit,
     onMenuClick: () -> Unit,
@@ -52,7 +59,10 @@ fun TopBar(
     onDownloadFolder: () -> Unit,
     onToggleViewMode: () -> Unit,
     onToggleTheme: () -> Unit,
-    onClearSelection: () -> Unit
+    onClearSelection: () -> Unit,
+    onOpenTransfers: () -> Unit,
+    onOpenDownloads: () -> Unit,
+    onClearCache: () -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
     var overflowOpen by remember { mutableStateOf(false) }
@@ -83,7 +93,7 @@ fun TopBar(
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = scheme.surface,
+                containerColor = scheme.surfaceContainer,
                 titleContentColor = scheme.onSurface,
                 navigationIconContentColor = scheme.onSurface
             )
@@ -150,6 +160,17 @@ fun TopBar(
                     contentDescription = "Toggle layout"
                 )
             }
+            IconButton(onClick = onOpenTransfers) {
+                BadgedBox(
+                    badge = {
+                        if (transferCount > 0) {
+                            Badge { Text(if (transferCount > 9) "9+" else "$transferCount") }
+                        }
+                    }
+                ) {
+                    Icon(Icons.Outlined.SwapVert, contentDescription = "Transfer queue")
+                }
+            }
             IconButton(onClick = { overflowOpen = true }) {
                 Icon(Icons.Outlined.MoreVert, contentDescription = "More")
             }
@@ -164,6 +185,22 @@ fun TopBar(
                         onDownloadFolder()
                     },
                     leadingIcon = { Icon(Icons.Outlined.Download, contentDescription = null) }
+                )
+                DropdownMenuItem(
+                    text = { Text("Downloaded files${if (downloadedCount > 0) " ($downloadedCount)" else ""}") },
+                    onClick = {
+                        overflowOpen = false
+                        onOpenDownloads()
+                    },
+                    leadingIcon = { Icon(Icons.Outlined.DownloadDone, contentDescription = null) }
+                )
+                DropdownMenuItem(
+                    text = { Text("Clear cache") },
+                    onClick = {
+                        overflowOpen = false
+                        onClearCache()
+                    },
+                    leadingIcon = { Icon(Icons.Outlined.CleaningServices, contentDescription = null) }
                 )
                 DropdownMenuItem(
                     text = {
@@ -183,7 +220,7 @@ fun TopBar(
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = scheme.surface,
+            containerColor = scheme.surfaceContainer,
             titleContentColor = scheme.onSurface,
             navigationIconContentColor = scheme.onSurface,
             actionIconContentColor = scheme.onSurfaceVariant

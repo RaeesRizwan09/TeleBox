@@ -2,6 +2,7 @@ package com.telebox.app.ui.dashboard
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -60,7 +62,8 @@ fun PdfViewerDialog(
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.9f))
             .clickable(onClick = onClose)
-            .padding(16.dp)
+            .systemBarsPadding()
+            .padding(12.dp)
     ) {
         Text(
             file.name,
@@ -79,10 +82,13 @@ fun PdfViewerDialog(
         Row(
             modifier = Modifier
                 .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 72.dp)
                 .clip(CircleShape)
                 .background(Color.Black.copy(alpha = 0.4f))
-                .padding(6.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
         ) {
             IconButton(onClick = onZoomOut) {
                 Icon(Icons.Outlined.ZoomOut, contentDescription = "Zoom Out", tint = Color.White.copy(alpha = 0.8f))

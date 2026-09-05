@@ -1,9 +1,0 @@
-[package]
-name = "uniffi-bindgen-cli"
-version = "0.28.3"
-edition = "2021"
-publish = false
-description = "Tiny launcher for the UniFFI 0.28 bindgen CLI (proc-macro library mode)"
-
-[dependencies]
-uniffi = { version = "=0.28.3", features = ["cli"] }

@@ -125,21 +125,23 @@ jobs:
           # Create and switch to new branch
           git checkout -b $BRANCH_NAME
           
-          # Stage the freshly built binaries
+          # Stage the freshly built binaries AND the UniFFI Kotlin bindings
           git add androidApp/app/src/main/jniLibs/
+          git add androidApp/app/src/main/java/com/telebox/app/engine/
           
           # Only commit and PR if there are actual changes
           if git diff --staged --quiet; then
-            echo "No changes in .so files to commit."
+            echo "No changes in binaries or bindings to commit."
           else
-            git commit -m "chore: update native .so binaries for all architectures"
+            git commit -m "chore: update native .so binaries and Kotlin bindings"
             git push origin $BRANCH_NAME
             
             # Create the Pull Request using the GitHub CLI
             gh pr create \
-              --title "Update Native JNI Libraries" \
-              --body "Automated PR updating the precompiled \`.so\` libraries for \`arm64-v8a\`, \`x86_64\`, \`armeabi-v7a\`, and \`x86\`." \
+              --title "Update Native JNI Libraries & Kotlin Bindings" \
+              --body "Automated PR updating the precompiled \`.so\` libraries for \`arm64-v8a\`, \`x86_64\`, \`armeabi-v7a\`, and \`x86\`, along with the generated UniFFI Kotlin wrappers." \
               --base main \
               --head $BRANCH_NAME
           fi
+
           

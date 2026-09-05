@@ -1,7 +1,12 @@
 package com.telebox.app.util
 
+import android.content.ContentResolver
+import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
 import com.telebox.app.data.ItemType
 import com.telebox.app.data.TelegramFile
+import java.io.File
 import kotlin.math.floor
 import kotlin.math.ln
 import kotlin.math.pow
@@ -70,4 +75,61 @@ fun formatFloodWait(seconds: Int): String {
     val minutes = seconds / 60
     val remainder = seconds % 60
     return "$minutes:${remainder.toString().padStart(2, '0')}"
+}
+
+fun materializeForUpload(context: Context, uri: Uri): String? {
+    if (uri.scheme == "file") {
+        val path = uri.path
+        if (path != null && File(path).isFile) return path
+    }
+
+    return runCatching {
+        val resolver = context.contentResolver
+        val name = queryDisplayName(resolver, uri) ?: fallbackName(uri)
+        val destDir = File(context.cacheDir, "uploads").apply { mkdirs() }
+        val dest = uniqueFile(destDir, sanitize(name))
+
+        resolver.openInputStream(uri)?.use { input ->
+            dest.outputStream().use { output -> input.copyTo(output) }
+        } ?: return null
+
+        dest.absolutePath
+    }.getOrNull()
+}
+
+private fun queryDisplayName(resolver: ContentResolver, uri: Uri): String? {
+    resolver.query(
+        uri,
+        arrayOf(OpenableColumns.DISPLAY_NAME),
+        null,
+        null,
+        null
+    )?.use { c ->
+        if (c.moveToFirst()) {
+            val i = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (i >= 0) return c.getString(i)
+        }
+    }
+    return null
+}
+
+private fun fallbackName(uri: Uri): String {
+    val last = uri.lastPathSegment?.substringAfterLast('/') ?: "upload.bin"
+    return last.replace(':', '_')
+}
+
+private fun sanitize(name: String): String =
+    name.replace(Regex("""[\\/:\u0000]"""), "_").ifBlank { "upload.bin" }
+
+private fun uniqueFile(dir: File, name: String): File {
+    val f = File(dir, name)
+    if (!f.exists()) return f
+    val stem = name.substringBeforeLast('.', name)
+    val ext = name.substringAfterLast('.', "").let { if (it.isEmpty()) "" else ".$it" }
+    var n = 1
+    while (true) {
+        val c = File(dir, "$stem ($n)$ext")
+        if (!c.exists()) return c
+        n++
+    }
 }

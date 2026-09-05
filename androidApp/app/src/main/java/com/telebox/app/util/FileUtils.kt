@@ -1,20 +1,22 @@
 package com.telebox.app.util
 
-import android.content.ContentResolver
-import android.content.Context
-import android.net.Uri
-import android.provider.OpenableColumns
 import com.telebox.app.data.ItemType
+import com.telebox.app.data.LibrarySection
+import com.telebox.app.data.LibraryStats
 import com.telebox.app.data.TelegramFile
-import java.io.File
 import kotlin.math.floor
 import kotlin.math.ln
 import kotlin.math.pow
 
-private val VIDEO_EXTENSIONS = setOf("mp4", "webm", "ogg", "mov", "mkv", "avi")
-private val AUDIO_EXTENSIONS = setOf("mp3", "wav", "aac", "flac", "m4a", "opus")
-private val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "heic", "heif")
+private val VIDEO_EXTENSIONS = setOf("mp4", "webm", "mov", "mkv", "avi", "m4v", "3gp", "flv", "wmv")
+private val AUDIO_EXTENSIONS = setOf("mp3", "wav", "aac", "flac", "m4a", "opus", "ogg", "wma", "aiff")
+private val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "heic", "heif", "avif", "tiff", "tif")
 private val THUMBNAIL_EXTENSIONS = setOf("jpg", "jpeg", "png", "gif", "webp", "bmp")
+private val DOCUMENT_EXTENSIONS = setOf(
+    "pdf", "doc", "docx", "txt", "rtf", "md", "odt", "pages",
+    "xls", "xlsx", "csv", "ods", "ppt", "pptx", "key", "odp",
+    "epub", "mobi"
+)
 
 fun formatBytes(bytes: Long, decimals: Int = 2): String {
     if (bytes <= 0L) return "0 Bytes"
@@ -57,6 +59,69 @@ fun isThumbnailFile(name: String): Boolean = endsWithAny(name, THUMBNAIL_EXTENSI
 
 fun isPdfFile(name: String): Boolean = name.lowercase().endsWith(".pdf")
 
+fun isDocumentFile(name: String): Boolean = endsWithAny(name, DOCUMENT_EXTENSIONS)
+
+fun isArchiveFile(name: String): Boolean =
+    endsWithAny(name, setOf("zip", "rar", "7z", "tar", "gz", "bz2", "xz", "iso"))
+
+fun isCodeFile(name: String): Boolean =
+    endsWithAny(
+        name,
+        setOf(
+            "js", "ts", "jsx", "tsx", "py", "rs", "go", "java", "kt", "kts",
+            "html", "css", "json", "xml", "yml", "yaml", "toml", "sh", "c",
+            "cpp", "h", "hpp", "cs", "swift", "rb", "php", "sql"
+        )
+    )
+
+fun librarySectionFor(name: String): LibrarySection = when {
+    isVideoFile(name) -> LibrarySection.VIDEOS
+    isImageFile(name) -> LibrarySection.PICTURES
+    isDocumentFile(name) -> LibrarySection.DOCUMENTS
+    else -> LibrarySection.OTHERS
+}
+
+fun computeLibraryStats(files: List<TelegramFile>): LibraryStats {
+    var videosCount = 0
+    var videosBytes = 0L
+    var picturesCount = 0
+    var picturesBytes = 0L
+    var documentsCount = 0
+    var documentsBytes = 0L
+    var othersCount = 0
+    var othersBytes = 0L
+    files.filter { it.type != ItemType.FOLDER }.forEach { file ->
+        when (librarySectionFor(file.name)) {
+            LibrarySection.VIDEOS -> {
+                videosCount++
+                videosBytes += file.size
+            }
+            LibrarySection.PICTURES -> {
+                picturesCount++
+                picturesBytes += file.size
+            }
+            LibrarySection.DOCUMENTS -> {
+                documentsCount++
+                documentsBytes += file.size
+            }
+            LibrarySection.OTHERS, LibrarySection.ALL -> {
+                othersCount++
+                othersBytes += file.size
+            }
+        }
+    }
+    return LibraryStats(
+        videosCount = videosCount,
+        videosBytes = videosBytes,
+        picturesCount = picturesCount,
+        picturesBytes = picturesBytes,
+        documentsCount = documentsCount,
+        documentsBytes = documentsBytes,
+        othersCount = othersCount,
+        othersBytes = othersBytes
+    )
+}
+
 fun TelegramFile.withFormattedSize(): TelegramFile =
     copy(
         sizeStr = formatBytes(size),
@@ -75,61 +140,4 @@ fun formatFloodWait(seconds: Int): String {
     val minutes = seconds / 60
     val remainder = seconds % 60
     return "$minutes:${remainder.toString().padStart(2, '0')}"
-}
-
-fun materializeForUpload(context: Context, uri: Uri): String? {
-    if (uri.scheme == "file") {
-        val path = uri.path
-        if (path != null && File(path).isFile) return path
-    }
-
-    return runCatching {
-        val resolver = context.contentResolver
-        val name = queryDisplayName(resolver, uri) ?: fallbackName(uri)
-        val destDir = File(context.cacheDir, "uploads").apply { mkdirs() }
-        val dest = uniqueFile(destDir, sanitize(name))
-
-        resolver.openInputStream(uri)?.use { input ->
-            dest.outputStream().use { output -> input.copyTo(output) }
-        } ?: return null
-
-        dest.absolutePath
-    }.getOrNull()
-}
-
-private fun queryDisplayName(resolver: ContentResolver, uri: Uri): String? {
-    resolver.query(
-        uri,
-        arrayOf(OpenableColumns.DISPLAY_NAME),
-        null,
-        null,
-        null
-    )?.use { c ->
-        if (c.moveToFirst()) {
-            val i = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-            if (i >= 0) return c.getString(i)
-        }
-    }
-    return null
-}
-
-private fun fallbackName(uri: Uri): String {
-    val last = uri.lastPathSegment?.substringAfterLast('/') ?: "upload.bin"
-    return last.replace(':', '_')
-}
-
-private fun sanitize(name: String): String =
-    name.replace(Regex("""[\\/:\u0000]"""), "_").ifBlank { "upload.bin" }
-
-private fun uniqueFile(dir: File, name: String): File {
-    val f = File(dir, name)
-    if (!f.exists()) return f
-    val stem = name.substringBeforeLast('.', name)
-    val ext = name.substringAfterLast('.', "").let { if (it.isEmpty()) "" else ".$it" }
-    var n = 1
-    while (true) {
-        val c = File(dir, "$stem ($n)$ext")
-        if (!c.exists()) return c
-        n++
-    }
 }

@@ -9,6 +9,9 @@ import com.telebox.app.data.ConfirmOptions
 import com.telebox.app.data.ConfirmVariant
 import com.telebox.app.data.DownloadItem
 import com.telebox.app.data.ItemType
+import com.telebox.app.data.LibrarySection
+import com.telebox.app.data.LibraryStats
+import com.telebox.app.data.LocalDownload
 import com.telebox.app.data.PreferencesStore
 import com.telebox.app.data.QueueItem
 import com.telebox.app.data.SortDirection
@@ -19,12 +22,14 @@ import com.telebox.app.data.TelegramFolder
 import com.telebox.app.data.TelegramRepository
 import com.telebox.app.data.TransferStatus
 import com.telebox.app.data.ViewMode
+import com.telebox.app.util.computeLibraryStats
+import com.telebox.app.util.formatBytes
 import com.telebox.app.util.isMediaFile
 import com.telebox.app.util.isPdfFile
-import com.telebox.app.util.materializeForUpload
+import com.telebox.app.util.librarySectionFor
 import com.telebox.app.util.randomId
 import com.telebox.app.util.withFormattedSize
-import kotlinx.coroutines.Dispatchers
+import java.io.File
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,7 +37,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 data class DashboardUiState(
     val folders: List<TelegramFolder> = emptyList(),
@@ -71,7 +75,13 @@ data class DashboardUiState(
     val pdfPageCount: Int = 0,
     val pdfScale: Float = 1.2f,
     val showDropBlocker: Boolean = false,
-    val isExternalDragging: Boolean = false
+    val isExternalDragging: Boolean = false,
+    val librarySection: LibrarySection = LibrarySection.ALL,
+    val libraryStats: LibraryStats = LibraryStats(),
+    val showTransfers: Boolean = false,
+    val showDownloadsWindow: Boolean = false,
+    val localDownloads: List<LocalDownload> = emptyList(),
+    val isClearingCache: Boolean = false
 )
 
 data class ContextMenuState(
@@ -159,6 +169,7 @@ class DashboardViewModel(
             app.showToast("Restored ${pendingDownloads.size} pending downloads")
         }
         initializedQueues = true
+        refreshLocalDownloads()
         refreshFiles()
         processNextUpload()
         processNextDownload()
@@ -191,7 +202,8 @@ class DashboardViewModel(
                     it.copy(
                         files = files,
                         filesLoading = false,
-                        displayedFiles = computeDisplayed(files, it.searchTerm, it.searchResults)
+                        libraryStats = computeLibraryStats(files),
+                        displayedFiles = computeDisplayed(files, it.searchTerm, it.searchResults, it.librarySection)
                     )
                 }
             } catch (err: Throwable) {
@@ -203,10 +215,30 @@ class DashboardViewModel(
     private fun computeDisplayed(
         files: List<TelegramFile>,
         searchTerm: String,
-        searchResults: List<TelegramFile>
+        searchResults: List<TelegramFile>,
+        section: LibrarySection
     ): List<TelegramFile> {
-        return if (searchTerm.length > 2) searchResults
-        else files.filter { it.name.contains(searchTerm, ignoreCase = true) }
+        val source = if (searchTerm.length > 2) searchResults else files
+        val filtered = source.filter { file ->
+            searchTerm.length <= 2 || file.name.contains(searchTerm, ignoreCase = true)
+        }
+        return if (section == LibrarySection.ALL) {
+            filtered
+        } else {
+            filtered.filter { file ->
+                file.type != ItemType.FOLDER && librarySectionFor(file.name) == section
+            }
+        }
+    }
+
+    fun setLibrarySection(section: LibrarySection) {
+        _state.update {
+            it.copy(
+                librarySection = section,
+                selectedIds = emptySet(),
+                displayedFiles = computeDisplayed(it.files, it.searchTerm, it.searchResults, section)
+            )
+        }
     }
 
     fun setActiveFolder(id: Long?) {
@@ -215,6 +247,7 @@ class DashboardViewModel(
             _state.update {
                 it.copy(
                     activeFolderId = id,
+                    librarySection = LibrarySection.ALL,
                     selectedIds = emptySet(),
                     showMoveModal = false,
                     searchTerm = "",
@@ -250,7 +283,7 @@ class DashboardViewModel(
                 it.copy(
                     searchResults = emptyList(),
                     isSearching = false,
-                    displayedFiles = computeDisplayed(it.files, term, emptyList())
+                    displayedFiles = computeDisplayed(it.files, term, emptyList(), it.librarySection)
                 )
             }
             return
@@ -264,7 +297,7 @@ class DashboardViewModel(
                 it.copy(
                     searchResults = results,
                     isSearching = false,
-                    displayedFiles = results
+                    displayedFiles = computeDisplayed(it.files, term, results, it.librarySection)
                 )
             }
         }
@@ -658,34 +691,21 @@ class DashboardViewModel(
         processNextDownload()
     }
 
-    fun queueUploads(uris: List<Uri>) {
-        if (uris.isEmpty()) return
-        val folderId = _state.value.activeFolderId
-        viewModelScope.launch {
-            val items = withContext(Dispatchers.IO) {
-                val context = getApplication<Application>()
-                uris.mapNotNull { uri ->
-                    val path = materializeForUpload(context, uri) ?: return@mapNotNull null
-                    QueueItem(
-                        id = randomId(),
-                        path = path,
-                        folderId = folderId,
-                        status = TransferStatus.PENDING
-                    )
-                }
-            }
-            if (items.isEmpty()) {
-                app.showToast("Could not copy picked file(s)", isError = true)
-                return@launch
-            }
-            if (items.size < uris.size) {
-                app.showToast("Could not copy ${uris.size - items.size} file(s)", isError = true)
-            }
-            _state.update { it.copy(uploadQueue = it.uploadQueue + items) }
-            persistUploads()
-            app.showToast("Queued ${items.size} files for upload")
-            processNextUpload()
+    fun queueUploads(uris: List<Uri>, resolverPath: (Uri) -> String?) {
+        val items = uris.mapNotNull { uri ->
+            val path = resolverPath(uri) ?: return@mapNotNull null
+            QueueItem(
+                id = randomId(),
+                path = path,
+                folderId = _state.value.activeFolderId,
+                status = TransferStatus.PENDING
+            )
         }
+        if (items.isEmpty()) return
+        _state.update { it.copy(uploadQueue = it.uploadQueue + items) }
+        persistUploads()
+        app.showToast("Queued ${items.size} files for upload")
+        processNextUpload()
     }
 
     fun cancelAllUploads() {
@@ -852,7 +872,7 @@ class DashboardViewModel(
                     if (it.id == next.id) it.copy(status = TransferStatus.DOWNLOADING, progress = 0f) else it
                 })
             }
-            val savePath = "${getApplication<Application>().cacheDir}/downloads/${next.filename}"
+            val savePath = downloadFileFor(next.filename).absolutePath
             try {
                 repository.downloadFile(next.messageId, savePath, next.folderId, next.id)
                 if (cancelledDownloads.remove(next.id)) {
@@ -860,10 +880,13 @@ class DashboardViewModel(
                 } else {
                     _state.update { current ->
                         current.copy(downloadQueue = current.downloadQueue.map {
-                            if (it.id == next.id) it.copy(status = TransferStatus.SUCCESS, progress = 100f) else it
+                            if (it.id == next.id) {
+                                it.copy(status = TransferStatus.SUCCESS, progress = 100f, localPath = savePath)
+                            } else it
                         })
                     }
                     app.showToast("Downloaded: ${next.filename}")
+                    refreshLocalDownloads()
                 }
             } catch (err: Throwable) {
                 val msg = err.message.orEmpty()
@@ -900,8 +923,90 @@ class DashboardViewModel(
     }
 
     fun currentFolderName(): String {
+        val sectionTitle = when (_state.value.librarySection) {
+            LibrarySection.ALL -> null
+            LibrarySection.VIDEOS -> "Videos"
+            LibrarySection.PICTURES -> "Pictures"
+            LibrarySection.DOCUMENTS -> "Documents"
+            LibrarySection.OTHERS -> "Others"
+        }
+        if (sectionTitle != null) return sectionTitle
         val id = _state.value.activeFolderId ?: return "Saved Messages"
         return _state.value.folders.find { it.id == id }?.name ?: "Folder"
+    }
+
+    fun downloadsDir(): File {
+        val dir = File(getApplication<Application>().cacheDir, "downloads")
+        if (!dir.exists()) dir.mkdirs()
+        return dir
+    }
+
+    private fun downloadFileFor(filename: String): File {
+        val dir = downloadsDir()
+        val safe = filename.ifBlank { "download" }.replace(Regex("[\\\\/]+"), "_")
+        var candidate = File(dir, safe)
+        if (!candidate.exists()) return candidate
+        val stem = safe.substringBeforeLast('.', safe)
+        val ext = safe.substringAfterLast('.', "")
+        var index = 1
+        while (candidate.exists()) {
+            val nextName = if (ext.isBlank()) "${stem}_$index" else "${stem}_$index.$ext"
+            candidate = File(dir, nextName)
+            index++
+        }
+        return candidate
+    }
+
+    fun refreshLocalDownloads() {
+        val files = downloadsDir()
+            .listFiles()
+            ?.filter { it.isFile }
+            ?.sortedByDescending { it.lastModified() }
+            ?.map { file ->
+                LocalDownload(
+                    path = file.absolutePath,
+                    name = file.name,
+                    size = file.length(),
+                    sizeStr = formatBytes(file.length()),
+                    modifiedAt = file.lastModified()
+                )
+            }
+            .orEmpty()
+        _state.update { it.copy(localDownloads = files) }
+    }
+
+    fun setShowTransfers(show: Boolean) {
+        _state.update { it.copy(showTransfers = show) }
+    }
+
+    fun setShowDownloadsWindow(show: Boolean) {
+        if (show) refreshLocalDownloads()
+        _state.update { it.copy(showDownloadsWindow = show, showTransfers = if (show) false else it.showTransfers) }
+    }
+
+    fun clearCache() {
+        viewModelScope.launch {
+            val ok = confirm.confirm(
+                ConfirmOptions(
+                    title = "Clear cache",
+                    message = "This removes cached previews and temporary files. Downloaded files in the cache folder will also be removed.",
+                    confirmText = "Clear",
+                    variant = ConfirmVariant.DANGER
+                )
+            )
+            if (!ok) return@launch
+            _state.update { it.copy(isClearingCache = true) }
+            runCatching { repository.cleanCache() }
+            runCatching {
+                getApplication<Application>().cacheDir.listFiles()?.forEach { child ->
+                    child.deleteRecursively()
+                }
+            }
+            downloadsDir()
+            refreshLocalDownloads()
+            _state.update { it.copy(isClearingCache = false) }
+            app.showToast("Cache cleared")
+        }
     }
 
     fun streamUrlFor(file: TelegramFile, info: StreamInfo): String {

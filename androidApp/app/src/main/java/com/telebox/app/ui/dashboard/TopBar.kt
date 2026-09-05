@@ -1,37 +1,39 @@
 package com.telebox.app.ui.dashboard
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.DriveFileMove
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.LightMode
-import androidx.compose.material.icons.outlined.Storage
+import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.ViewList
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.telebox.app.data.AppThemeMode
 import com.telebox.app.data.ViewMode
-import com.telebox.app.ui.theme.TeleBoxTheme
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBar(
     currentFolderName: String,
@@ -39,88 +41,152 @@ fun TopBar(
     viewMode: ViewMode,
     searchTerm: String,
     theme: AppThemeMode,
+    showMenu: Boolean,
+    searchExpanded: Boolean,
+    onSearchExpandedChange: (Boolean) -> Unit,
     onSearchChange: (String) -> Unit,
+    onMenuClick: () -> Unit,
     onShowMoveModal: () -> Unit,
     onBulkDownload: () -> Unit,
     onBulkDelete: () -> Unit,
     onDownloadFolder: () -> Unit,
     onToggleViewMode: () -> Unit,
-    onToggleTheme: () -> Unit
+    onToggleTheme: () -> Unit,
+    onClearSelection: () -> Unit
 ) {
-    val colors = TeleBoxTheme.colors
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .background(colors.surface.copy(alpha = 0.8f))
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Start", color = colors.subtext, fontSize = 14.sp)
-            Text(" / ", color = colors.subtext, modifier = Modifier.padding(horizontal = 8.dp))
-            Text(currentFolderName, color = colors.text, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-        }
-        OutlinedTextField(
-            value = searchTerm,
-            onValueChange = onSearchChange,
-            placeholder = { Text("Search files...", color = colors.subtext, fontSize = 14.sp) },
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = colors.primary.copy(alpha = 0.5f),
-                unfocusedBorderColor = colors.border,
-                focusedTextColor = colors.text,
-                unfocusedTextColor = colors.text,
-                focusedContainerColor = colors.hover,
-                unfocusedContainerColor = colors.hover
-            ),
-            modifier = Modifier
-                .weight(1f)
-                .widthIn(max = 448.dp)
-                .padding(horizontal = 16.dp)
-                .height(44.dp)
+    val scheme = MaterialTheme.colorScheme
+    var overflowOpen by remember { mutableStateOf(false) }
+
+    if (searchExpanded) {
+        TopAppBar(
+            title = {
+                TextField(
+                    value = searchTerm,
+                    onValueChange = onSearchChange,
+                    placeholder = { Text("Search files") },
+                    singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = scheme.surface,
+                        unfocusedContainerColor = scheme.surface,
+                        focusedIndicatorColor = scheme.primary,
+                        unfocusedIndicatorColor = scheme.outlineVariant
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            navigationIcon = {
+                IconButton(onClick = {
+                    onSearchChange("")
+                    onSearchExpandedChange(false)
+                }) {
+                    Icon(Icons.Outlined.Close, contentDescription = "Close search")
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = scheme.surface,
+                titleContentColor = scheme.onSurface,
+                navigationIconContentColor = scheme.onSurface
+            )
         )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (selectedCount > 0) {
-                Text("$selectedCount Selected", color = colors.subtext, fontSize = 12.sp, modifier = Modifier.padding(end = 8.dp))
-                TextButton(onClick = onShowMoveModal) {
-                    Text("Move to...", color = colors.primary, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+        return
+    }
+
+    if (selectedCount > 0) {
+        TopAppBar(
+            title = {
+                Text(
+                    "$selectedCount selected",
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            navigationIcon = {
+                IconButton(onClick = onClearSelection) {
+                    Icon(Icons.Outlined.Close, contentDescription = "Clear selection")
                 }
-                TextButton(onClick = onBulkDownload) {
-                    Text("Download Selected", color = colors.text, fontSize = 12.sp)
+            },
+            actions = {
+                IconButton(onClick = onShowMoveModal) {
+                    Icon(Icons.Outlined.DriveFileMove, contentDescription = "Move")
                 }
-                TextButton(onClick = onBulkDelete) {
-                    Text("Delete", color = colors.danger, fontSize = 12.sp)
+                IconButton(onClick = onBulkDownload) {
+                    Icon(Icons.Outlined.Download, contentDescription = "Download selected")
+                }
+                IconButton(onClick = onBulkDelete) {
+                    Icon(Icons.Outlined.Delete, contentDescription = "Delete selected")
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = scheme.secondaryContainer,
+                titleContentColor = scheme.onSecondaryContainer,
+                navigationIconContentColor = scheme.onSecondaryContainer,
+                actionIconContentColor = scheme.onSecondaryContainer
+            )
+        )
+        return
+    }
+
+    TopAppBar(
+        title = {
+            Text(
+                currentFolderName,
+                style = MaterialTheme.typography.titleLarge,
+                maxLines = 1
+            )
+        },
+        navigationIcon = {
+            if (showMenu) {
+                IconButton(onClick = onMenuClick) {
+                    Icon(Icons.Outlined.Menu, contentDescription = "Open navigation")
                 }
             }
-            IconButton(onClick = onDownloadFolder) {
-                Icon(Icons.Outlined.Storage, contentDescription = "Download All Files", tint = colors.subtext, modifier = Modifier.size(20.dp))
+        },
+        actions = {
+            IconButton(onClick = { onSearchExpandedChange(true) }) {
+                Icon(Icons.Outlined.Search, contentDescription = "Search")
             }
             IconButton(onClick = onToggleViewMode) {
-                Icon(Icons.Outlined.GridView, contentDescription = "Toggle Layout", tint = colors.subtext, modifier = Modifier.size(20.dp))
-            }
-            BoxDivider()
-            IconButton(onClick = onToggleTheme) {
                 Icon(
-                    imageVector = if (theme == AppThemeMode.DARK) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
-                    contentDescription = "Toggle theme",
-                    tint = colors.subtext,
-                    modifier = Modifier.size(20.dp)
+                    imageVector = if (viewMode == ViewMode.GRID) Icons.Outlined.ViewList else Icons.Outlined.GridView,
+                    contentDescription = "Toggle layout"
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun BoxDivider() {
-    androidx.compose.foundation.layout.Box(
-        modifier = Modifier
-            .padding(horizontal = 4.dp)
-            .width(1.dp)
-            .height(24.dp)
-            .clip(RoundedCornerShape(1.dp))
-            .background(TeleBoxTheme.colors.border)
+            IconButton(onClick = { overflowOpen = true }) {
+                Icon(Icons.Outlined.MoreVert, contentDescription = "More")
+            }
+            DropdownMenu(
+                expanded = overflowOpen,
+                onDismissRequest = { overflowOpen = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Download all") },
+                    onClick = {
+                        overflowOpen = false
+                        onDownloadFolder()
+                    },
+                    leadingIcon = { Icon(Icons.Outlined.Download, contentDescription = null) }
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text(if (theme == AppThemeMode.DARK) "Light theme" else "Dark theme")
+                    },
+                    onClick = {
+                        overflowOpen = false
+                        onToggleTheme()
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = if (theme == AppThemeMode.DARK) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+                            contentDescription = null
+                        )
+                    }
+                )
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = scheme.surface,
+            titleContentColor = scheme.onSurface,
+            navigationIconContentColor = scheme.onSurface,
+            actionIconContentColor = scheme.onSurfaceVariant
+        )
     )
 }

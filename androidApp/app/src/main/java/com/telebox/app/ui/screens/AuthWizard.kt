@@ -19,8 +19,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -37,6 +40,8 @@ import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.QrCode
 import androidx.compose.material.icons.outlined.Settings
@@ -51,7 +56,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,6 +71,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.zxing.BarcodeFormat
@@ -110,7 +119,9 @@ fun AuthWizardScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.authGradient)
-            .padding(24.dp),
+            .systemBarsPadding()
+            .imePadding()
+            .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
         IconButton(
@@ -133,7 +144,7 @@ fun AuthWizardScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp))
                 .background(colors.authGlass)
-                .padding(32.dp)
+                .padding(horizontal = 24.dp, vertical = 28.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -277,7 +288,7 @@ private fun SetupStep(
         AuthField("API HASH", state.apiHash, "abcdef123456...", KeyboardType.Ascii, onApiHashChange)
         Button(
             onClick = onSubmit,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
+            modifier = Modifier.fillMaxWidth().height(52.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB), contentColor = Color.White),
             shape = RoundedCornerShape(12.dp)
         ) {
@@ -319,7 +330,7 @@ private fun PhoneStep(
             Button(
                 onClick = onSubmit,
                 enabled = !state.loading,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                modifier = Modifier.fillMaxWidth().height(52.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -350,12 +361,21 @@ private fun MethodTab(
         modifier = modifier
             .background(if (active) Color.White.copy(alpha = 0.15f) else Color.Transparent)
             .clickable(onClick = onClick)
+            .heightIn(min = 48.dp)
             .padding(vertical = 10.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, contentDescription = null, tint = if (active) Color.White else Color.White.copy(alpha = 0.5f), modifier = Modifier.size(16.dp))
-        Text(label, color = if (active) Color.White else Color.White.copy(alpha = 0.5f), fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 8.dp))
+        Text(
+            label,
+            color = if (active) Color.White else Color.White.copy(alpha = 0.5f),
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(start = 6.dp)
+        )
     }
 }
 
@@ -364,7 +384,7 @@ private fun QrBlock(state: AuthUiState, onRefresh: () -> Unit, onBack: () -> Uni
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         if (state.loading && state.qrUrl == null) {
             Box(
-                modifier = Modifier.size(208.dp).clip(RoundedCornerShape(16.dp)).background(Color.White.copy(alpha = 0.05f)),
+                modifier = Modifier.size(180.dp).clip(RoundedCornerShape(16.dp)).background(Color.White.copy(alpha = 0.05f)),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(color = Color(0xFF60A5FA), modifier = Modifier.size(32.dp), strokeWidth = 2.dp)
@@ -374,7 +394,7 @@ private fun QrBlock(state: AuthUiState, onRefresh: () -> Unit, onBack: () -> Uni
             val bitmap = remember(url) { qrBitmap(url) }
             Box(modifier = Modifier.clip(RoundedCornerShape(16.dp)).background(Color.White).padding(16.dp)) {
                 if (bitmap != null) {
-                    Image(bitmap = bitmap.asImageBitmap(), contentDescription = "QR Code", modifier = Modifier.size(200.dp))
+                    Image(bitmap = bitmap.asImageBitmap(), contentDescription = "QR Code", modifier = Modifier.size(180.dp))
                 }
             }
             Text("Scan with your Telegram app", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp, modifier = Modifier.padding(top = 16.dp))
@@ -407,7 +427,7 @@ private fun CodeStep(
         Button(
             onClick = onSubmit,
             enabled = !state.loading,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
+            modifier = Modifier.fillMaxWidth().height(52.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
             shape = RoundedCornerShape(12.dp)
         ) {
@@ -451,7 +471,7 @@ private fun PasswordStep(
         Button(
             onClick = onSubmit,
             enabled = !state.loading && state.password.isNotBlank(),
-            modifier = Modifier.fillMaxWidth().height(56.dp),
+            modifier = Modifier.fillMaxWidth().height(52.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
             shape = RoundedCornerShape(12.dp)
         ) {
@@ -473,6 +493,7 @@ private fun AuthField(
     leading: androidx.compose.ui.graphics.vector.ImageVector = Icons.Outlined.Key,
     password: Boolean = false
 ) {
+    var passwordVisible by remember { mutableStateOf(false) }
     Column {
         Text(label, color = Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp)
         Spacer(Modifier.height(8.dp))
@@ -481,8 +502,19 @@ private fun AuthField(
             onValueChange = onChange,
             placeholder = { Text(placeholder, color = Color.Gray) },
             leadingIcon = { Icon(leading, contentDescription = null, tint = Color.White) },
+            trailingIcon = if (password) {
+                {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                            contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                            tint = Color.White.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            } else null,
             singleLine = true,
-            visualTransformation = if (password) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+            visualTransformation = if (password && !passwordVisible) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = Color(0xFF3B82F6),
@@ -508,6 +540,7 @@ private fun HelpDialog(onClose: () -> Unit, onOpenPortal: () -> Unit) {
             modifier = Modifier
                 .widthIn(max = 512.dp)
                 .fillMaxWidth()
+                .padding(16.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(colors.surface)
                 .clickable(enabled = false) {}
@@ -584,6 +617,7 @@ private fun DonateDialog(onClose: () -> Unit, onOpen: (String) -> Unit) {
             modifier = Modifier
                 .widthIn(max = 384.dp)
                 .fillMaxWidth()
+                .padding(16.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(colors.surface)
                 .clickable(enabled = false) {}

@@ -75,7 +75,7 @@ val LocalTeleBoxColors = staticCompositionLocalOf {
         glass = SurfaceContainerDark.copy(alpha = 0.92f),
         authGlass = SurfaceContainerDark.copy(alpha = 0.88f),
         glassInput = SurfaceContainerLowestDark.copy(alpha = 0.72f),
-        authGradient = SolidColor(AuthGradientEndDark),
+        authGradient = Brush.solidColor(AuthGradientEndDark),
         danger = ErrorDark,
         dangerSoft = ErrorDark.copy(alpha = 0.16f),
         success = SuccessDark,

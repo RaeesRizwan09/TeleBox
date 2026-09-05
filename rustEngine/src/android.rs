@@ -40,13 +40,21 @@ impl std::fmt::Display for EngineError {
 
 impl From<String> for EngineError {
     fn from(e: String) -> Self {
-        EngineError::Telegram(e)
+        if crate::commands::utils::is_io_error_message(&e) {
+            let msg = e
+                .strip_prefix(crate::commands::utils::IO_ERR_PREFIX)
+                .unwrap_or(&e)
+                .to_string();
+            EngineError::Internal(msg)
+        } else {
+            EngineError::Telegram(e)
+        }
     }
 }
 
 impl From<&str> for EngineError {
     fn from(e: &str) -> Self {
-        EngineError::Telegram(e.to_string())
+        EngineError::from(e.to_string())
     }
 }
 
@@ -270,6 +278,8 @@ impl TelegramDriveEngine {
     }
 
     /// Upload a local file into the given folder.
+    /// `path` must be a real filesystem path (Android: copy `content://` URIs
+    /// into cache/files first). `file://` URIs are accepted and decoded.
     /// `transfer_id` is a client-generated correlation id (may be empty) that
     /// `cancel_transfer` uses to abort the transfer.
     pub fn upload_file(
@@ -286,6 +296,8 @@ impl TelegramDriveEngine {
     }
 
     /// Download a file (by message id) to `save_path`.
+    /// `save_path` may be a directory (e.g. Downloads) or a full file path.
+    /// Parent directories are created. Returns the final filesystem path.
     /// `transfer_id` may be empty; when supplied it enables progress + cancel.
     pub fn download_file(
         &self,

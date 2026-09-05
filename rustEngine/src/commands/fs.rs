@@ -1,4 +1,4 @@
-}use grammers_client::types::{Media, Peer};
+use grammers_client::types::{Media, Peer};
 use grammers_client::InputMessage;
 use grammers_tl_types as tl;
 use std::sync::Arc;

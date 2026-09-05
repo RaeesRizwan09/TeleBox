@@ -20,7 +20,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun EmptyState() {
+fun EmptyState(
+    title: String = "This folder is empty",
+    subtitle: String = "Tap the upload button to add files from your device."
+) {
     val scheme = MaterialTheme.colorScheme
     Column(
         modifier = Modifier
@@ -37,13 +40,13 @@ fun EmptyState() {
         )
         Spacer(Modifier.height(20.dp))
         Text(
-            "This folder is empty",
+            title,
             style = MaterialTheme.typography.headlineSmall,
             color = scheme.onSurface
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "Tap the upload button to add files from your device.",
+            subtitle,
             style = MaterialTheme.typography.bodyMedium,
             color = scheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

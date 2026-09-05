@@ -58,7 +58,7 @@ fun UploadQueuePanel(
 
     Surface(
         modifier = Modifier.fillMaxWidth(if (compact) 1f else 0.92f),
-        shape = MaterialTheme.shapes.large,
+        shape = MaterialTheme.shapes.extraLarge,
         color = scheme.surfaceContainerHigh,
         tonalElevation = 3.dp,
         shadowElevation = 8.dp

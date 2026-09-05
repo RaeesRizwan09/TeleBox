@@ -1,6 +1,8 @@
 package com.telebox.app.ui.components
 
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -24,17 +26,25 @@ fun ConfirmDialog(
             Text(options.message, style = MaterialTheme.typography.bodyMedium)
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(
-                    options.confirmText,
-                    color = if (options.variant == ConfirmVariant.DANGER) scheme.error else scheme.primary
-                )
+            Button(
+                onClick = onConfirm,
+                colors = if (options.variant == ConfirmVariant.DANGER) {
+                    ButtonDefaults.buttonColors(
+                        containerColor = scheme.error,
+                        contentColor = scheme.onError
+                    )
+                } else {
+                    ButtonDefaults.buttonColors()
+                }
+            ) {
+                Text(options.confirmText)
             }
         },
         dismissButton = {
             TextButton(onClick = onCancel) {
                 Text(options.cancelText)
             }
-        }
+        },
+        shape = MaterialTheme.shapes.extraLarge
     )
 }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -51,7 +52,12 @@ fun TeleBoxRoot() {
     val authState by authViewModel.state.collectAsStateWithLifecycle()
     val dashboardState by dashboardViewModel.state.collectAsStateWithLifecycle()
 
-    TeleBoxTheme(darkTheme = theme == AppThemeMode.DARK) {
+    val darkTheme = when (theme) {
+        AppThemeMode.DARK -> true
+        AppThemeMode.LIGHT -> false
+        AppThemeMode.SYSTEM -> isSystemInDarkTheme()
+    }
+    TeleBoxTheme(darkTheme = darkTheme, dynamicColor = true) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background

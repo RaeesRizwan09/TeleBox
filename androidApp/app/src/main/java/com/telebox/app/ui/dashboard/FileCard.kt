@@ -56,8 +56,8 @@ fun FileCard(
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) scheme.secondaryContainer else scheme.surfaceContainerLow
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = MaterialTheme.shapes.medium
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 2.dp else 0.dp),
+        shape = MaterialTheme.shapes.extraLarge
     ) {
         Box(
             modifier = Modifier

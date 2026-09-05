@@ -38,6 +38,7 @@ interface TelegramRepository {
     suspend fun getPreview(messageId: Long, folderId: Long?): String?
     suspend fun getStreamInfo(): StreamInfo
     fun streamUrl(folderId: Long?, fileId: Long, info: StreamInfo): String
+    suspend fun prepareMediaPlayback(messageId: Long, folderId: Long?, fileName: String): String
 }
 
 class DemoTelegramRepository : TelegramRepository {
@@ -278,6 +279,13 @@ class DemoTelegramRepository : TelegramRepository {
     override fun streamUrl(folderId: Long?, fileId: Long, info: StreamInfo): String {
         val folderParam = folderId?.toString() ?: "home"
         return "${info.baseUrl}/stream/$folderParam/$fileId?token=${info.token}"
+    }
+
+    override suspend fun prepareMediaPlayback(messageId: Long, folderId: Long?, fileName: String): String {
+        delay(180)
+        val item = listFor(folderId).find { it.id == messageId }
+        return streamUrl(folderId, messageId, StreamInfo(token = "demo-token", baseUrl = "https://stream.local"))
+            .plus(if (item != null) "&name=${item.name}" else "")
     }
 
     fun authorizeQrForDemo() {

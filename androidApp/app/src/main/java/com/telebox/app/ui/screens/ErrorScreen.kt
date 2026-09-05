@@ -125,12 +125,20 @@ fun SplashScreen() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                imageVector = Icons.Outlined.CloudUpload,
-                contentDescription = null,
-                tint = scheme.primary,
-                modifier = Modifier.size(56.dp)
-            )
+            Surface(
+                modifier = Modifier.size(88.dp),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = scheme.primaryContainer
+            ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Outlined.CloudUpload,
+                        contentDescription = null,
+                        tint = scheme.onPrimaryContainer,
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
+            }
             Spacer(Modifier.height(20.dp))
             CircularProgressIndicator(
                 color = scheme.primary,

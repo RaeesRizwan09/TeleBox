@@ -54,7 +54,7 @@ fun FileListItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(MaterialTheme.shapes.medium)
+            .clip(MaterialTheme.shapes.large)
             .background(if (selected) scheme.secondaryContainer else scheme.surface)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .heightIn(min = 64.dp)

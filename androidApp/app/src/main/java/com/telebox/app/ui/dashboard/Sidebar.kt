@@ -101,7 +101,7 @@ fun Sidebar(
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .clip(MaterialTheme.shapes.medium)
+                    .clip(MaterialTheme.shapes.large)
                     .background(scheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {

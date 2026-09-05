@@ -32,6 +32,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowForward
+import androidx.compose.material.icons.outlined.BrightnessAuto
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Favorite
@@ -50,6 +51,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -129,12 +131,16 @@ fun AuthWizardScreen(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.1f))
+                .background(colors.glassInput)
         ) {
             Icon(
-                imageVector = if (theme == AppThemeMode.DARK) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+                imageVector = when (theme) {
+                    AppThemeMode.SYSTEM -> Icons.Outlined.BrightnessAuto
+                    AppThemeMode.LIGHT -> Icons.Outlined.LightMode
+                    AppThemeMode.DARK -> Icons.Outlined.DarkMode
+                },
                 contentDescription = "Toggle theme",
-                tint = Color.White
+                tint = colors.text
             )
         }
 
@@ -158,8 +164,8 @@ fun AuthWizardScreen(
                 Icon(Icons.Outlined.Settings, contentDescription = null, tint = colors.primary, modifier = Modifier.size(36.dp))
             }
             Spacer(Modifier.height(24.dp))
-            Text("Telegram Drive", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Text("Self-Hosted Secure Storage", color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Text("Telegram Drive", color = colors.text, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text("Self-Hosted Secure Storage", color = colors.subtext, fontSize = 14.sp, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(32.dp))
 
             if (state.floodWait != null) {
@@ -289,8 +295,7 @@ private fun SetupStep(
         Button(
             onClick = onSubmit,
             modifier = Modifier.fillMaxWidth().height(52.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB), contentColor = Color.White),
-            shape = RoundedCornerShape(12.dp)
+            shape = MaterialTheme.shapes.large
         ) {
             Text("Configure", fontWeight = FontWeight.Bold)
             Icon(Icons.Outlined.Settings, contentDescription = null, modifier = Modifier.padding(start = 8.dp).size(16.dp))
@@ -331,8 +336,7 @@ private fun PhoneStep(
                 onClick = onSubmit,
                 enabled = !state.loading,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
-                shape = RoundedCornerShape(12.dp)
+                shape = MaterialTheme.shapes.large
             ) {
                 if (state.loading) Text("Connecting...", fontWeight = FontWeight.Bold)
                 else {
@@ -359,17 +363,18 @@ private fun MethodTab(
 ) {
     Row(
         modifier = modifier
-            .background(if (active) Color.White.copy(alpha = 0.15f) else Color.Transparent)
+            .background(if (active) TeleBoxTheme.colors.primary.copy(alpha = 0.18f) else Color.Transparent)
             .clickable(onClick = onClick)
             .heightIn(min = 48.dp)
             .padding(vertical = 10.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, contentDescription = null, tint = if (active) Color.White else Color.White.copy(alpha = 0.5f), modifier = Modifier.size(16.dp))
+        val tint = if (active) TeleBoxTheme.colors.text else TeleBoxTheme.colors.subtext
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(16.dp))
         Text(
             label,
-            color = if (active) Color.White else Color.White.copy(alpha = 0.5f),
+            color = tint,
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
@@ -428,8 +433,7 @@ private fun CodeStep(
             onClick = onSubmit,
             enabled = !state.loading,
             modifier = Modifier.fillMaxWidth().height(52.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
-            shape = RoundedCornerShape(12.dp)
+            shape = MaterialTheme.shapes.large
         ) {
             Text(if (state.loading) "Verifying..." else "Sign In", fontWeight = FontWeight.Bold)
         }
@@ -472,8 +476,7 @@ private fun PasswordStep(
             onClick = onSubmit,
             enabled = !state.loading && state.password.isNotBlank(),
             modifier = Modifier.fillMaxWidth().height(52.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
-            shape = RoundedCornerShape(12.dp)
+            shape = MaterialTheme.shapes.large
         ) {
             Text(if (state.loading) "Verifying..." else "Unlock", fontWeight = FontWeight.Bold)
         }
@@ -494,21 +497,23 @@ private fun AuthField(
     password: Boolean = false
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
+    val colors = TeleBoxTheme.colors
+    val scheme = MaterialTheme.colorScheme
     Column {
-        Text(label, color = Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp)
+        Text(label, color = colors.subtext, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp)
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(
             value = value,
             onValueChange = onChange,
-            placeholder = { Text(placeholder, color = Color.Gray) },
-            leadingIcon = { Icon(leading, contentDescription = null, tint = Color.White) },
+            placeholder = { Text(placeholder, color = colors.subtext) },
+            leadingIcon = { Icon(leading, contentDescription = null, tint = colors.text) },
             trailingIcon = if (password) {
                 {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
                             imageVector = if (passwordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
                             contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                            tint = Color.White.copy(alpha = 0.7f)
+                            tint = colors.subtext
                         )
                     }
                 }
@@ -517,14 +522,16 @@ private fun AuthField(
             visualTransformation = if (password && !passwordVisible) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color(0xFF3B82F6),
-                unfocusedBorderColor = Color.White.copy(alpha = 0.1f),
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                cursorColor = Color.White
+                focusedBorderColor = scheme.primary,
+                unfocusedBorderColor = scheme.outlineVariant,
+                focusedTextColor = scheme.onSurface,
+                unfocusedTextColor = scheme.onSurface,
+                cursorColor = scheme.primary,
+                focusedContainerColor = colors.glassInput,
+                unfocusedContainerColor = colors.glassInput
             ),
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+            shape = MaterialTheme.shapes.large
         )
     }
 }

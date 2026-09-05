@@ -28,7 +28,8 @@ class PreferencesStore(private val context: Context) {
         when (prefs[themeKey]) {
             "light" -> AppThemeMode.LIGHT
             "dark" -> AppThemeMode.DARK
-            else -> AppThemeMode.DARK
+            "system" -> AppThemeMode.SYSTEM
+            else -> AppThemeMode.SYSTEM
         }
     }
 
@@ -96,7 +97,11 @@ class PreferencesStore(private val context: Context) {
 
     suspend fun saveTheme(mode: AppThemeMode) {
         context.dataStore.edit {
-            it[themeKey] = if (mode == AppThemeMode.LIGHT) "light" else "dark"
+            it[themeKey] = when (mode) {
+                AppThemeMode.LIGHT -> "light"
+                AppThemeMode.DARK -> "dark"
+                AppThemeMode.SYSTEM -> "system"
+            }
         }
     }
 

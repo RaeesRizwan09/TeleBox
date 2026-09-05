@@ -74,6 +74,26 @@ fun isCodeFile(name: String): Boolean =
         )
     )
 
+fun mimeTypeForFile(name: String): String = when (fileExtension(name)) {
+    "mp4", "m4v" -> "video/mp4"
+    "webm" -> "video/webm"
+    "mov" -> "video/quicktime"
+    "mkv" -> "video/x-matroska"
+    "avi" -> "video/x-msvideo"
+    "3gp" -> "video/3gpp"
+    "flv" -> "video/x-flv"
+    "wmv" -> "video/x-ms-wmv"
+    "mp3" -> "audio/mpeg"
+    "wav" -> "audio/wav"
+    "aac" -> "audio/aac"
+    "flac" -> "audio/flac"
+    "m4a" -> "audio/mp4"
+    "opus", "ogg" -> "audio/ogg"
+    "wma" -> "audio/x-ms-wma"
+    "aiff" -> "audio/aiff"
+    else -> "application/octet-stream"
+}
+
 fun librarySectionFor(name: String): LibrarySection = when {
     isVideoFile(name) -> LibrarySection.VIDEOS
     isImageFile(name) -> LibrarySection.PICTURES

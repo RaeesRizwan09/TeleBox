@@ -2,6 +2,7 @@ package com.telebox.app.ui.dashboard
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BrightnessAuto
 import androidx.compose.material.icons.outlined.CleaningServices
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DarkMode
@@ -204,7 +205,13 @@ fun TopBar(
                 )
                 DropdownMenuItem(
                     text = {
-                        Text(if (theme == AppThemeMode.DARK) "Light theme" else "Dark theme")
+                        Text(
+                            when (theme) {
+                                AppThemeMode.SYSTEM -> "Theme: System"
+                                AppThemeMode.LIGHT -> "Theme: Light"
+                                AppThemeMode.DARK -> "Theme: Dark"
+                            }
+                        )
                     },
                     onClick = {
                         overflowOpen = false
@@ -212,7 +219,11 @@ fun TopBar(
                     },
                     leadingIcon = {
                         Icon(
-                            imageVector = if (theme == AppThemeMode.DARK) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+                            imageVector = when (theme) {
+                                AppThemeMode.SYSTEM -> Icons.Outlined.BrightnessAuto
+                                AppThemeMode.LIGHT -> Icons.Outlined.LightMode
+                                AppThemeMode.DARK -> Icons.Outlined.DarkMode
+                            },
                             contentDescription = null
                         )
                     }

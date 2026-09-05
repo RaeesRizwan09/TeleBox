@@ -23,17 +23,16 @@ class RustTelegramRepository(
     @Suppress("unused") private val preferencesStore: PreferencesStore
 ) : TelegramRepository {
 
+    @Volatile
+    private var streamingServerReady: Boolean? = null
+
     // ─── Engine singleton ──────────────────────────────────────────────────────────
     private val engine: TelegramDriveEngine by lazy {
         TelegramDriveEngine().apply {
-            // Must call setStoragePaths before any other operation.
             val dataDir = context.filesDir.absolutePath
             val cacheDir = context.cacheDir.absolutePath
             setStoragePaths(dataDir, cacheDir)
-            // Register the progress listener (created below)
             setProgressListener(progressListener)
-            // Optionally start the streaming server if you enabled the feature.
-            // startStreamingServer() // see notes below
         }
     }
 
@@ -264,6 +263,24 @@ class RustTelegramRepository(
     override fun streamUrl(folderId: Long?, fileId: Long, info: StreamInfo): String {
         val folderParam = folderId?.toString() ?: "home"
         return "${info.baseUrl}/stream/$folderParam/$fileId?token=${info.token}"
+    }
+
+    override suspend fun prepareMediaPlayback(
+        messageId: Long,
+        folderId: Long?,
+        fileName: String
+    ): String {
+        val streamingReady = streamingServerReady ?: engineCall {
+            runCatching { engine.startStreamingServer() }.getOrDefault(false)
+        }.also { streamingServerReady = it }
+        if (streamingReady) {
+            val info = getStreamInfo()
+            return streamUrl(folderId, messageId, info)
+        }
+        return engineCall {
+            engine.getPreview(messageId.toInt(), folderId).takeIf { it.isNotEmpty() }
+                ?: throw RuntimeException("Unable to prepare media for playback")
+        }
     }
 
     // ─── Mapping extensions ──────────────────────────────────────────────────────

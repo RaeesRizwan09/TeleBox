@@ -67,6 +67,9 @@ data class DashboardUiState(
     val sortDirection: SortDirection = SortDirection.ASC,
     val contextMenu: ContextMenuState? = null,
     val streamInfo: StreamInfo? = null,
+    val mediaStreamUrl: String? = null,
+    val mediaLoading: Boolean = false,
+    val mediaError: String? = null,
     val previewSrc: String? = null,
     val previewLoading: Boolean = false,
     val previewError: String? = null,
@@ -335,7 +338,10 @@ class DashboardViewModel(
                 previewFile = null,
                 playingFile = null,
                 pdfFile = null,
-                contextMenu = null
+                contextMenu = null,
+                mediaStreamUrl = null,
+                mediaLoading = false,
+                mediaError = null
             )
         }
     }
@@ -352,14 +358,20 @@ class DashboardViewModel(
         val contextFiles = orderedFiles.filter { it.type != ItemType.FOLDER }
         val contextIndex = contextFiles.indexOfFirst { it.id == file.id }
         when {
-            isMediaFile(file.name) -> _state.update {
-                it.copy(
-                    playingFile = file,
-                    previewFile = null,
-                    pdfFile = null,
-                    previewContextFiles = contextFiles,
-                    previewContextIndex = contextIndex
-                )
+            isMediaFile(file.name) -> {
+                _state.update {
+                    it.copy(
+                        playingFile = file,
+                        previewFile = null,
+                        pdfFile = null,
+                        previewContextFiles = contextFiles,
+                        previewContextIndex = contextIndex,
+                        mediaStreamUrl = null,
+                        mediaLoading = true,
+                        mediaError = null
+                    )
+                }
+                loadMedia(file)
             }
             isPdfFile(file.name) -> {
                 _state.update {
@@ -414,6 +426,28 @@ class DashboardViewModel(
         }
     }
 
+    private fun loadMedia(file: TelegramFile) {
+        viewModelScope.launch {
+            _state.update { it.copy(mediaLoading = true, mediaError = null, mediaStreamUrl = null) }
+            runCatching {
+                repository.prepareMediaPlayback(
+                    messageId = file.id,
+                    folderId = file.folderId ?: _state.value.activeFolderId,
+                    fileName = file.name
+                )
+            }.onSuccess { src ->
+                _state.update { it.copy(mediaStreamUrl = src, mediaLoading = false, mediaError = null) }
+            }.onFailure { err ->
+                _state.update {
+                    it.copy(
+                        mediaLoading = false,
+                        mediaError = err.message ?: "Unable to start media playback"
+                    )
+                }
+            }
+        }
+    }
+
     fun navigatePreview(step: Int) {
         val current = _state.value
         if (current.previewContextFiles.isEmpty()) return
@@ -432,7 +466,10 @@ class DashboardViewModel(
                 playingFile = null,
                 pdfFile = null,
                 previewSrc = null,
-                previewError = null
+                previewError = null,
+                mediaStreamUrl = null,
+                mediaLoading = false,
+                mediaError = null
             )
         }
     }
@@ -692,20 +729,25 @@ class DashboardViewModel(
     }
 
     fun queueUploads(uris: List<Uri>, resolverPath: (Uri) -> String?) {
-        val items = uris.mapNotNull { uri ->
-            val path = resolverPath(uri) ?: return@mapNotNull null
-            QueueItem(
-                id = randomId(),
-                path = path,
-                folderId = _state.value.activeFolderId,
-                status = TransferStatus.PENDING
-            )
+        viewModelScope.launch {
+            val items = uris.mapNotNull { uri ->
+                val path = resolverPath(uri) ?: return@mapNotNull null
+                QueueItem(
+                    id = randomId(),
+                    path = path,
+                    folderId = _state.value.activeFolderId,
+                    status = TransferStatus.PENDING
+                )
+            }
+            if (items.isEmpty()) {
+                app.showToast("Could not read the selected files", isError = true)
+                return@launch
+            }
+            _state.update { it.copy(uploadQueue = it.uploadQueue + items) }
+            persistUploads()
+            app.showToast("Queued ${items.size} files for upload")
+            processNextUpload()
         }
-        if (items.isEmpty()) return
-        _state.update { it.copy(uploadQueue = it.uploadQueue + items) }
-        persistUploads()
-        app.showToast("Queued ${items.size} files for upload")
-        processNextUpload()
     }
 
     fun cancelAllUploads() {

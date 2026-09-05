@@ -22,6 +22,7 @@ import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -204,6 +205,12 @@ private fun SortChip(
         selected = active,
         onClick = { onSort(field) },
         label = { Text(label) },
+        shape = MaterialTheme.shapes.large,
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            selectedTrailingIconColor = MaterialTheme.colorScheme.onSecondaryContainer
+        ),
         trailingIcon = if (active) {
             {
                 Icon(

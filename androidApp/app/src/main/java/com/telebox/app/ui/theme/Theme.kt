@@ -3,12 +3,15 @@ package com.telebox.app.ui.theme
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -17,7 +20,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
@@ -260,10 +263,18 @@ private val TeleBoxShapes = Shapes(
 @Composable
 fun TeleBoxTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val extended = if (darkTheme) DarkExtended else LightExtended
-    val colorScheme: ColorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val context = LocalContext.current
+    val colorScheme: ColorScheme = when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+        darkTheme -> DarkColorScheme
+        else -> LightColorScheme
+    }
+    val extended = (if (darkTheme) DarkExtended else LightExtended).harmonized(colorScheme, darkTheme)
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
@@ -283,6 +294,29 @@ fun TeleBoxTheme(
             content = content
         )
     }
+}
+
+private fun TeleBoxExtendedColors.harmonized(scheme: ColorScheme, darkTheme: Boolean): TeleBoxExtendedColors {
+    return copy(
+        bg = scheme.background,
+        surface = scheme.surfaceContainer,
+        primary = scheme.primary,
+        secondary = scheme.secondary,
+        text = scheme.onSurface,
+        subtext = scheme.onSurfaceVariant,
+        border = scheme.outlineVariant,
+        hover = scheme.surfaceContainerHigh,
+        glass = scheme.surfaceContainer.copy(alpha = 0.92f),
+        authGlass = scheme.surfaceContainer.copy(alpha = if (darkTheme) 0.88f else 0.92f),
+        glassInput = scheme.surfaceContainerLowest.copy(alpha = 0.78f),
+        authGradient = Brush.linearGradient(listOf(scheme.primaryContainer, scheme.surface)),
+        danger = scheme.error,
+        dangerSoft = scheme.error.copy(alpha = if (darkTheme) 0.16f else 0.12f),
+        onPrimary = scheme.onPrimary,
+        overlayScrim = if (darkTheme) Color(0x99000000) else Color(0xB3000000),
+        confirmSurface = scheme.surfaceContainerHigh,
+        brand = scheme.primary
+    )
 }
 
 object TeleBoxTheme {

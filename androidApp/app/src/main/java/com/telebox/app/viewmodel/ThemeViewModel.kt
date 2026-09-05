@@ -16,12 +16,16 @@ class ThemeViewModel(application: Application) : AndroidViewModel(application) {
     val theme: StateFlow<AppThemeMode> = store.themeFlow.stateIn(
         viewModelScope,
         SharingStarted.Eagerly,
-        AppThemeMode.DARK
+        AppThemeMode.SYSTEM
     )
 
     fun toggleTheme() {
         viewModelScope.launch {
-            val next = if (theme.value == AppThemeMode.DARK) AppThemeMode.LIGHT else AppThemeMode.DARK
+            val next = when (theme.value) {
+                AppThemeMode.SYSTEM -> AppThemeMode.LIGHT
+                AppThemeMode.LIGHT -> AppThemeMode.DARK
+                AppThemeMode.DARK -> AppThemeMode.SYSTEM
+            }
             store.saveTheme(next)
         }
     }

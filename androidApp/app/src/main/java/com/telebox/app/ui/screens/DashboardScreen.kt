@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
@@ -62,9 +64,12 @@ import com.telebox.app.ui.dashboard.UploadQueuePanel
 import com.telebox.app.ui.theme.isCompact
 import com.telebox.app.ui.theme.rememberWindowWidthSize
 import com.telebox.app.ui.theme.useModalDrawer
+import com.telebox.app.util.copyPickedUriToCache
 import com.telebox.app.viewmodel.DashboardUiState
 import com.telebox.app.viewmodel.DashboardViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun DashboardScreen(
@@ -80,9 +85,14 @@ fun DashboardScreen(
     val scope = rememberCoroutineScope()
     var searchExpanded by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris: List<Uri> ->
-        viewModel.queueUploads(uris) { uri ->
-            uri.lastPathSegment ?: uri.toString()
+        if (uris.isEmpty()) return@rememberLauncherForActivityResult
+        scope.launch {
+            val paths = withContext(Dispatchers.IO) {
+                uris.mapNotNull { uri -> copyPickedUriToCache(context, uri)?.let { uri to it } }.toMap()
+            }
+            viewModel.queueUploads(uris) { uri -> paths[uri] }
         }
     }
 
@@ -101,6 +111,9 @@ fun DashboardScreen(
     }
     BackHandler(enabled = state.showTransfers) {
         viewModel.setShowTransfers(false)
+    }
+    BackHandler(enabled = state.playingFile != null || state.previewFile != null || state.pdfFile != null) {
+        viewModel.closePreview()
     }
 
     val sidebar: @Composable () -> Unit = {
@@ -259,7 +272,9 @@ private fun DashboardScaffold(
                     FloatingActionButton(
                         onClick = onUpload,
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        shape = MaterialTheme.shapes.large,
+                        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
                     ) {
                         Icon(Icons.Outlined.Upload, contentDescription = "Upload files")
                     }
@@ -269,7 +284,9 @@ private fun DashboardScaffold(
                         icon = { Icon(Icons.Outlined.Upload, contentDescription = null) },
                         text = { Text("Upload") },
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        shape = MaterialTheme.shapes.extraLarge,
+                        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
                     )
                 }
             }
@@ -377,13 +394,13 @@ private fun DashboardScaffold(
     }
 
     state.playingFile?.let { file ->
-        val url = state.streamInfo?.let { info -> viewModel.streamUrlFor(file, info) }
         MediaPlayerDialog(
             file = file,
-            streamInfo = state.streamInfo,
             currentIndex = state.previewContextIndex,
             totalItems = state.previewContextFiles.size,
-            streamUrl = url,
+            streamUrl = state.mediaStreamUrl,
+            loading = state.mediaLoading,
+            error = state.mediaError,
             onClose = viewModel::closePreview,
             onNext = { viewModel.navigatePreview(1) },
             onPrev = { viewModel.navigatePreview(-1) }

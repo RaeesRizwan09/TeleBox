@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,6 +28,7 @@ import com.telebox.app.data.ItemType
 import com.telebox.app.data.TelegramFile
 import com.telebox.app.ui.components.FileIconSize
 import com.telebox.app.ui.components.FileTypeIcon
+import com.telebox.app.ui.components.FolderTypeIcon
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -81,18 +81,13 @@ fun FileListItem(
                             modifier = Modifier.size(20.dp)
                         )
                     } else if (isFolder) {
-                        Icon(Icons.Outlined.Folder, contentDescription = null, tint = scheme.primary)
+                        FolderTypeIcon(size = FileIconSize.SM)
                     } else {
                         FileTypeIcon(filename = file.name, size = FileIconSize.SM)
                     }
                 }
             } else if (isFolder) {
-                Icon(
-                    Icons.Outlined.Folder,
-                    contentDescription = null,
-                    tint = scheme.primary,
-                    modifier = Modifier.size(28.dp)
-                )
+                FolderTypeIcon(size = FileIconSize.MD)
             } else {
                 FileTypeIcon(filename = file.name, size = FileIconSize.MD)
             }

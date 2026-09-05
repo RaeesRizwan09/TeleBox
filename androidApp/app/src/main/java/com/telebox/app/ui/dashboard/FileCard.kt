@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -33,6 +32,7 @@ import com.telebox.app.data.ItemType
 import com.telebox.app.data.TelegramFile
 import com.telebox.app.ui.components.FileIconSize
 import com.telebox.app.ui.components.FileTypeIcon
+import com.telebox.app.ui.components.FolderTypeIcon
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -56,7 +56,8 @@ fun FileCard(
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) scheme.secondaryContainer else scheme.surfaceContainerLow
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = MaterialTheme.shapes.medium
     ) {
         Box(
             modifier = Modifier
@@ -72,12 +73,7 @@ fun FileCard(
                     modifier = Modifier.fillMaxSize()
                 )
             } else if (isFolder) {
-                Icon(
-                    Icons.Outlined.Folder,
-                    contentDescription = null,
-                    tint = scheme.primary,
-                    modifier = Modifier.size(48.dp)
-                )
+                FolderTypeIcon(size = FileIconSize.LG)
             } else {
                 FileTypeIcon(filename = file.name, size = FileIconSize.LG)
             }

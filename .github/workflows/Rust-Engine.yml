@@ -6,10 +6,14 @@ on:
 env:
   RUST_VERSION: stable
   ANDROID_NDK_VERSION: 26.3.11579262
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout repository
@@ -21,7 +25,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # Manual NDK download (Option 2 – known to work)
       - name: Download and extract NDK
         run: |
           NDK_VERSION=${{ env.ANDROID_NDK_VERSION }}
@@ -41,6 +44,8 @@ jobs:
         run: |
           rustup target add aarch64-linux-android
           rustup target add x86_64-linux-android
+          rustup target add armv7-linux-androideabi
+          rustup target add i686-linux-android
 
       - name: Install and verify cargo-ndk
         run: |
@@ -52,13 +57,15 @@ jobs:
           cd rustEngine
           cargo ndk \
             --platform 21 \
-            --target arm64-v8a --target x86_64 \
+            --target arm64-v8a \
+            --target x86_64 \
+            --target armeabi-v7a \
+            --target x86 \
             --output-dir ../androidApp/app/src/main/jniLibs \
             build --release --lib --no-default-features
         env:
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
 
-      # --- Verify the library exists and has UniFFI symbols ---
       - name: Check library file
         run: |
           echo "Library size and type:"
@@ -97,7 +104,6 @@ jobs:
           echo "Kotlin files:"
           find bindings-tmp -name "*.kt" -type f || echo "No .kt files generated"
 
-      # --- Move Kotlin wrappers to expected package ---
       - name: Move Kotlin wrappers
         run: |
           mkdir -p androidApp/app/src/main/java/com/telebox/app/engine
@@ -108,12 +114,32 @@ jobs:
             exit 1
           fi
 
-      - name: Upload generated artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: native-engine-artifacts
-          path: |
-            androidApp/app/src/main/jniLibs/
-            androidApp/app/src/main/java/com/telebox/app/engine/
-          if-no-files-found: error
+      - name: Commit and Create Pull Request
+        run: |
+          BRANCH_NAME="update-jni-libs-$(date +'%Y%m%d-%H%M%S')"
+          
+          # Configure git for the GitHub Actions bot
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Create and switch to new branch
+          git checkout -b $BRANCH_NAME
+          
+          # Stage the freshly built binaries
+          git add androidApp/app/src/main/jniLibs/
+          
+          # Only commit and PR if there are actual changes
+          if git diff --staged --quiet; then
+            echo "No changes in .so files to commit."
+          else
+            git commit -m "chore: update native .so binaries for all architectures"
+            git push origin $BRANCH_NAME
+            
+            # Create the Pull Request using the GitHub CLI
+            gh pr create \
+              --title "Update Native JNI Libraries" \
+              --body "Automated PR updating the precompiled \`.so\` libraries for \`arm64-v8a\`, \`x86_64\`, \`armeabi-v7a\`, and \`x86\`." \
+              --base main \
+              --head $BRANCH_NAME
+          fi
           

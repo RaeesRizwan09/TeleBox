@@ -1,4 +1,4 @@
-use grammers_client::types::{Media, Peer};
+}use grammers_client::types::{Media, Peer};
 use grammers_client::InputMessage;
 use grammers_tl_types as tl;
 use std::sync::Arc;
@@ -6,7 +6,9 @@ use std::sync::Arc;
 use crate::TelegramState;
 use crate::models::{FolderMetadata, FileMetadata};
 use crate::bandwidth::BandwidthManager;
-use crate::commands::utils::{resolve_peer, map_error};
+use crate::commands::utils::{
+    cache_dir, io_err, map_error, resolve_download_path, resolve_peer, resolve_upload_path,
+};
 use crate::commands::TransferProgressListener;
 
 #[derive(Clone)]
@@ -147,8 +149,13 @@ struct ProgressReader {
 
 impl ProgressReader {
     async fn new(path: &str) -> Result<(Self, u64, std::sync::Arc<std::sync::atomic::AtomicU64>), String> {
-        let file = tokio::fs::File::open(path).await.map_err(|e| e.to_string())?;
-        let metadata = file.metadata().await.map_err(|e| e.to_string())?;
+        let file = tokio::fs::File::open(path)
+            .await
+            .map_err(|e| io_err(format!("cannot open '{}': {}", path, e)))?;
+        let metadata = file
+            .metadata()
+            .await
+            .map_err(|e| io_err(format!("cannot read metadata for '{}': {}", path, e)))?;
         let size = metadata.len();
         let counter = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
         let reader = Self {
@@ -212,7 +219,8 @@ pub async fn cmd_upload_file(
     state: &TelegramState,
     bw: &BandwidthManager,
 ) -> Result<String, String> {
-    let size = std::fs::metadata(&path).map_err(|e| e.to_string())?.len();
+    let (path, size) = resolve_upload_path(&path)?;
+    let path_str = path.to_string_lossy().to_string();
     bw.can_transfer(size)?;
 
     let tid = transfer_id.unwrap_or_default();
@@ -221,7 +229,7 @@ pub async fn cmd_upload_file(
 
     let client_opt = { state.client.lock().await.clone() };
     if client_opt.is_none() {
-        log::info!("[MOCK] Uploaded file {} to {:?}", path, folder_id);
+        log::info!("[MOCK] Uploaded file {} to {:?}", path_str, folder_id);
         bw.add_up(size);
         return Ok("Mock upload successful".to_string());
     }
@@ -235,8 +243,8 @@ pub async fn cmd_upload_file(
     }
 
     // Create progress-tracking reader
-    let (mut reader, file_size, bytes_counter) = ProgressReader::new(&path).await?;
-    let file_name = std::path::Path::new(&path)
+    let (mut reader, file_size, bytes_counter) = ProgressReader::new(&path_str).await?;
+    let file_name = path
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_else(|| "file".to_string());
@@ -329,6 +337,33 @@ pub async fn cmd_delete_file(
     Ok(true)
 }
 
+fn media_file_name(media: &Media, message_id: i32) -> String {
+    match media {
+        Media::Document(d) => {
+            let name = d.name().trim();
+            if !name.is_empty() {
+                return name.to_string();
+            }
+            let ext = d.mime_type().and_then(|mime| match mime {
+                "image/jpeg" => Some("jpg"),
+                "image/png" => Some("png"),
+                "image/gif" => Some("gif"),
+                "image/webp" => Some("webp"),
+                "video/mp4" => Some("mp4"),
+                "audio/mpeg" => Some("mp3"),
+                "application/pdf" => Some("pdf"),
+                _ => None,
+            });
+            match ext {
+                Some(e) => format!("file_{}.{}", message_id, e),
+                None => format!("file_{}", message_id),
+            }
+        }
+        Media::Photo(_) => format!("photo_{}.jpg", message_id),
+        _ => format!("file_{}", message_id),
+    }
+}
+
 pub async fn cmd_download_file(
     message_id: i32,
     save_path: String,
@@ -339,12 +374,14 @@ pub async fn cmd_download_file(
 ) -> Result<String, String> {
     let tid = transfer_id.unwrap_or_default();
     let listener_lock = state.progress_listener.clone();
+    let fallback_dir = cache_dir(state).unwrap_or_else(|_| std::env::temp_dir());
 
     let client_opt = { state.client.lock().await.clone() };
-    if client_opt.is_none() { 
-        log::info!("[MOCK] Downloaded message {} from {:?} to {}", message_id, folder_id, save_path);
-        if let Err(e) = std::fs::write(&save_path, b"Mock Content") { return Err(e.to_string()); }
-        return Ok("Download successful".to_string());
+    if client_opt.is_none() {
+        let dest = resolve_download_path(&save_path, "mock.bin", &fallback_dir)?;
+        log::info!("[MOCK] Downloaded message {} from {:?} to {}", message_id, folder_id, dest.display());
+        std::fs::write(&dest, b"Mock Content").map_err(|e| io_err(e.to_string()))?;
+        return Ok(dest.to_string_lossy().into_owned());
     }
     let client = client_opt.unwrap();
     
@@ -360,6 +397,11 @@ pub async fn cmd_download_file(
 
     let media = msg.media()
         .ok_or_else(|| "No media in message".to_string())?;
+
+    let file_name = media_file_name(&media, message_id);
+    let dest = resolve_download_path(&save_path, &file_name, &fallback_dir)?;
+    let dest_str = dest.to_string_lossy().to_string();
+    log::info!("Downloading message {} to {}", message_id, dest_str);
 
     let total_size = match &media {
         Media::Document(d) => d.size() as u64,
@@ -378,7 +420,9 @@ pub async fn cmd_download_file(
 
     // Stream download with per-chunk progress
     let mut download_iter = client.iter_download(&media);
-    let mut file = std::fs::File::create(&save_path).map_err(|e| e.to_string())?;
+    let mut file = std::fs::File::create(&dest).map_err(|e| io_err(format!(
+        "cannot create download file '{}': {}", dest_str, e
+    )))?;
     let mut downloaded: u64 = 0;
     let mut last_emit_time = std::time::Instant::now();
     let mut last_emit_bytes: u64 = 0;
@@ -388,12 +432,12 @@ pub async fn cmd_download_file(
         if state.cancelled_transfers.read().await.contains(&tid) {
             state.cancelled_transfers.write().await.remove(&tid);
             drop(file);
-            cleanup_partial_file(&save_path);
+            cleanup_partial_file(&dest_str);
             return Err("Transfer cancelled".to_string());
         }
 
         let bytes = chunk.map_err(|e| format!("Download chunk error: {}", e))?;
-        std::io::Write::write_all(&mut file, &bytes).map_err(|e| e.to_string())?;
+        std::io::Write::write_all(&mut file, &bytes).map_err(|e| io_err(e.to_string()))?;
         downloaded += bytes.len() as u64;
         
         // Time-based progress emission (every 250ms)
@@ -421,7 +465,7 @@ pub async fn cmd_download_file(
         }).await;
     }
 
-    Ok("Download successful".to_string())
+    Ok(dest_str)
 }
 
 pub async fn cmd_move_files(

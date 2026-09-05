@@ -29,6 +29,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.telebox.app.data.ItemType
 import com.telebox.app.data.TelegramFile
+import com.telebox.app.ui.components.FileIconSize
+import com.telebox.app.ui.components.FileTypeIcon
+import com.telebox.app.ui.components.FolderTypeIcon
 import com.telebox.app.util.isMediaFile
 import com.telebox.app.util.isPdfFile
 
@@ -54,20 +57,30 @@ fun FileContextMenu(
                 .fillMaxWidth()
                 .padding(bottom = 24.dp)
         ) {
-            Text(
-                file.name,
-                style = MaterialTheme.typography.titleMedium,
-                color = scheme.onSurface,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
-            )
-            Text(
-                file.sizeStr,
-                style = MaterialTheme.typography.bodySmall,
-                color = scheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 0.dp)
-            )
+            Row(
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (file.type == ItemType.FOLDER) {
+                    FolderTypeIcon(size = FileIconSize.MD)
+                } else {
+                    FileTypeIcon(filename = file.name, size = FileIconSize.MD)
+                }
+                Column(modifier = Modifier.padding(start = 12.dp)) {
+                    Text(
+                        file.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = scheme.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        file.sizeStr,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = scheme.onSurfaceVariant
+                    )
+                }
+            }
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
             if (file.type != ItemType.FOLDER) {
                 val (icon, label) = when {

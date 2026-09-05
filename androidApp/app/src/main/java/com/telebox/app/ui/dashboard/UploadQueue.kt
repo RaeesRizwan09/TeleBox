@@ -15,9 +15,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.CloudUpload
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Replay
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -29,10 +32,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.telebox.app.data.QueueItem
 import com.telebox.app.data.TransferStatus
+import com.telebox.app.ui.components.FileIconSize
+import com.telebox.app.ui.components.FileTypeIcon
 import com.telebox.app.ui.theme.TeleBoxTheme
 import com.telebox.app.util.formatBytesShort
 
@@ -47,14 +53,15 @@ fun UploadQueuePanel(
 ) {
     if (items.isEmpty()) return
     val scheme = MaterialTheme.colorScheme
-    val hasPendingOrActive = items.any { it.status == TransferStatus.PENDING || it.status == TransferStatus.UPLOADING }
+    val activeCount = items.count { it.status == TransferStatus.PENDING || it.status == TransferStatus.UPLOADING }
+    val completedCount = items.count { it.status == TransferStatus.SUCCESS }
 
     Surface(
         modifier = Modifier.fillMaxWidth(if (compact) 1f else 0.92f),
         shape = MaterialTheme.shapes.large,
         color = scheme.surfaceContainerHigh,
         tonalElevation = 3.dp,
-        shadowElevation = 6.dp
+        shadowElevation = 8.dp
     ) {
         Column {
             Row(
@@ -64,25 +71,50 @@ fun UploadQueuePanel(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    "Uploads",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = scheme.onSurface
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(scheme.primaryContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Outlined.CloudUpload,
+                            contentDescription = null,
+                            tint = scheme.onPrimaryContainer,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Column(modifier = Modifier.padding(start = 10.dp)) {
+                        Text("Uploads", style = MaterialTheme.typography.titleSmall, color = scheme.onSurface)
+                        Text(
+                            when {
+                                activeCount > 0 -> "$activeCount in progress"
+                                completedCount > 0 -> "$completedCount complete"
+                                else -> "${items.size} items"
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = scheme.onSurfaceVariant
+                        )
+                    }
+                }
                 Row {
-                    if (hasPendingOrActive) {
+                    if (activeCount > 0) {
                         TextButton(onClick = onCancelAll) {
                             Text("Cancel all", color = scheme.error)
                         }
                     }
-                    TextButton(onClick = onClearFinished) {
-                        Text("Clear")
+                    if (completedCount > 0 || items.any { it.status == TransferStatus.ERROR || it.status == TransferStatus.CANCELLED }) {
+                        TextButton(onClick = onClearFinished) {
+                            Text("Clear")
+                        }
                     }
                 }
             }
             LazyColumn(
                 modifier = Modifier
-                    .heightIn(max = 220.dp)
+                    .heightIn(max = 260.dp)
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -95,7 +127,7 @@ fun UploadQueuePanel(
                         totalBytes = item.totalBytes,
                         speed = item.speedBytesPerSec,
                         error = item.error,
-                        activeColor = scheme.secondary,
+                        activeColor = scheme.primary,
                         onCancel = { onCancelItem(item.id) },
                         onRetry = { onRetryItem(item.id) }
                     )
@@ -114,13 +146,21 @@ fun QueueRow(
     totalBytes: Long?,
     speed: Long?,
     error: String?,
-    activeColor: androidx.compose.ui.graphics.Color,
+    activeColor: Color,
     onCancel: () -> Unit,
     onRetry: () -> Unit
 ) {
     val colors = TeleBoxTheme.colors
     val scheme = MaterialTheme.colorScheme
-    val dot = when (status) {
+    val statusLabel = when (status) {
+        TransferStatus.PENDING -> "Queued"
+        TransferStatus.UPLOADING -> "Uploading"
+        TransferStatus.DOWNLOADING -> "Downloading"
+        TransferStatus.CANCELLED -> "Cancelled"
+        TransferStatus.ERROR -> "Failed"
+        TransferStatus.SUCCESS -> "Done"
+    }
+    val statusColor = when (status) {
         TransferStatus.PENDING -> colors.warning
         TransferStatus.UPLOADING, TransferStatus.DOWNLOADING -> activeColor
         TransferStatus.CANCELLED -> scheme.onSurfaceVariant
@@ -135,17 +175,25 @@ fun QueueRow(
             .padding(10.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(dot))
-            Text(
-                name,
-                style = MaterialTheme.typography.bodyMedium,
-                color = scheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+            FileTypeIcon(filename = name, size = FileIconSize.SM)
+            Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(start = 12.dp)
-            )
+                    .padding(start = 10.dp)
+            ) {
+                Text(
+                    name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = scheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    statusLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = statusColor
+                )
+            }
             when (status) {
                 TransferStatus.UPLOADING, TransferStatus.DOWNLOADING, TransferStatus.PENDING -> {
                     IconButton(onClick = onCancel, modifier = Modifier.size(48.dp)) {
@@ -157,7 +205,16 @@ fun QueueRow(
                         Icon(Icons.Outlined.Replay, contentDescription = "Retry", modifier = Modifier.size(18.dp))
                     }
                 }
-                else -> Unit
+                TransferStatus.SUCCESS -> {
+                    Icon(
+                        Icons.Outlined.CheckCircle,
+                        contentDescription = "Complete",
+                        tint = colors.success,
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .size(20.dp)
+                    )
+                }
             }
         }
         if (status == TransferStatus.UPLOADING || status == TransferStatus.DOWNLOADING) {
@@ -165,8 +222,8 @@ fun QueueRow(
                 progress = { ((progress ?: 0f) / 100f).coerceIn(0f, 1f) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 6.dp)
-                    .height(4.dp)
+                    .padding(top = 8.dp)
+                    .height(6.dp)
                     .clip(RoundedCornerShape(99.dp)),
                 color = activeColor,
                 trackColor = scheme.surfaceContainerHighest
@@ -174,7 +231,7 @@ fun QueueRow(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 4.dp),
+                    .padding(top = 6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
@@ -195,8 +252,22 @@ fun QueueRow(
                 )
             }
         }
+        if (status == TransferStatus.PENDING) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = 6.dp)
+            ) {
+                Icon(Icons.Outlined.Schedule, contentDescription = null, tint = colors.warning, modifier = Modifier.size(14.dp))
+                Text(
+                    "Waiting in queue",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 4.dp)
+                )
+            }
+        }
         if (status == TransferStatus.ERROR && error != null) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
                 Icon(Icons.Outlined.ErrorOutline, contentDescription = null, tint = scheme.error, modifier = Modifier.size(14.dp))
                 Text(
                     error,
@@ -207,14 +278,6 @@ fun QueueRow(
                     modifier = Modifier.padding(start = 4.dp)
                 )
             }
-        }
-        if (status == TransferStatus.CANCELLED) {
-            Text(
-                "Cancelled",
-                style = MaterialTheme.typography.bodySmall,
-                color = scheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 2.dp)
-            )
         }
     }
 }

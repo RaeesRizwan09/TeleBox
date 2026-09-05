@@ -40,7 +40,7 @@ data class DashboardUiState(
     val filesError: String? = null,
     val isSyncing: Boolean = false,
     val isConnected: Boolean = true,
-    val viewMode: ViewMode = ViewMode.GRID,
+    val viewMode: ViewMode = ViewMode.LIST,
     val selectedIds: Set<Long> = emptySet(),
     val searchTerm: String = "",
     val searchResults: List<TelegramFile> = emptyList(),

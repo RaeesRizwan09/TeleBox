@@ -27,7 +27,7 @@ fun BandwidthWidget(bandwidth: BandwidthStats?) {
             progress = { percent },
             modifier = Modifier.fillMaxWidth(),
             color = scheme.primary,
-            trackColor = scheme.surfaceContainerHighest
+            trackColor = scheme.secondaryContainer
         )
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(formatBytes(totalBytes), style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)

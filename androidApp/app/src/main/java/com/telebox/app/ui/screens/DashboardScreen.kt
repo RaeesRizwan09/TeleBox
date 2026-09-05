@@ -45,6 +45,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import com.telebox.app.data.AppThemeMode
 import com.telebox.app.data.ItemType
+import com.telebox.app.ui.dashboard.DownloadedFilesWindow
 import com.telebox.app.ui.dashboard.DownloadQueuePanel
 import com.telebox.app.ui.dashboard.DragDropOverlay
 import com.telebox.app.ui.dashboard.ExternalDropBlocker
@@ -56,6 +57,7 @@ import com.telebox.app.ui.dashboard.PdfViewerDialog
 import com.telebox.app.ui.dashboard.PreviewModal
 import com.telebox.app.ui.dashboard.Sidebar
 import com.telebox.app.ui.dashboard.TopBar
+import com.telebox.app.ui.dashboard.TransfersSheet
 import com.telebox.app.ui.dashboard.UploadQueuePanel
 import com.telebox.app.ui.theme.isCompact
 import com.telebox.app.ui.theme.rememberWindowWidthSize
@@ -79,7 +81,9 @@ fun DashboardScreen(
     var searchExpanded by remember { mutableStateOf(false) }
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris: List<Uri> ->
-        viewModel.queueUploads(uris)
+        viewModel.queueUploads(uris) { uri ->
+            uri.lastPathSegment ?: uri.toString()
+        }
     }
 
     BackHandler(enabled = useModalDrawer && drawerState.isOpen) {
@@ -92,6 +96,12 @@ fun DashboardScreen(
         searchExpanded = false
         viewModel.onSearchChange("")
     }
+    BackHandler(enabled = state.showDownloadsWindow) {
+        viewModel.setShowDownloadsWindow(false)
+    }
+    BackHandler(enabled = state.showTransfers) {
+        viewModel.setShowTransfers(false)
+    }
 
     val sidebar: @Composable () -> Unit = {
         Sidebar(
@@ -102,13 +112,19 @@ fun DashboardScreen(
             bandwidth = state.bandwidth,
             showNewFolderInput = state.showNewFolderInput,
             newFolderName = state.newFolderName,
+            librarySection = state.librarySection,
+            libraryStats = state.libraryStats,
+            isClearingCache = state.isClearingCache,
             onActiveFolderChange = viewModel::setActiveFolder,
+            onLibrarySectionChange = viewModel::setLibrarySection,
             onDeleteFolder = viewModel::deleteFolder,
             onShowNewFolder = { viewModel.setShowNewFolderInput(true) },
             onNewFolderNameChange = viewModel::onNewFolderNameChange,
             onCreateFolder = viewModel::createFolder,
             onSync = viewModel::syncFolders,
             onLogout = viewModel::logout,
+            onClearCache = viewModel::clearCache,
+            onOpenDownloads = { viewModel.setShowDownloadsWindow(true) },
             onNavigate = {
                 if (useModalDrawer) scope.launch { drawerState.close() }
             }
@@ -134,7 +150,10 @@ fun DashboardScreen(
         ModalNavigationDrawer(
             drawerState = drawerState,
             drawerContent = {
-                ModalDrawerSheet(modifier = Modifier.fillMaxWidth(0.88f)) {
+                ModalDrawerSheet(
+                    modifier = Modifier.fillMaxWidth(0.88f),
+                    drawerContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                ) {
                     sidebar()
                 }
             }
@@ -144,7 +163,10 @@ fun DashboardScreen(
     } else {
         PermanentNavigationDrawer(
             drawerContent = {
-                PermanentDrawerSheet(modifier = Modifier.width(280.dp)) {
+                PermanentDrawerSheet(
+                    modifier = Modifier.width(292.dp),
+                    drawerContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                ) {
                     sidebar()
                 }
             }
@@ -207,6 +229,8 @@ private fun DashboardScaffold(
                 theme = theme,
                 showMenu = showMenu,
                 searchExpanded = searchExpanded,
+                transferCount = state.uploadQueue.size + state.downloadQueue.size,
+                downloadedCount = state.localDownloads.size,
                 onSearchExpandedChange = onSearchExpandedChange,
                 onSearchChange = viewModel::onSearchChange,
                 onMenuClick = onMenuClick,
@@ -222,21 +246,30 @@ private fun DashboardScaffold(
                 },
                 onToggleViewMode = viewModel::toggleViewMode,
                 onToggleTheme = onToggleTheme,
-                onClearSelection = viewModel::clearSelection
+                onClearSelection = viewModel::clearSelection,
+                onOpenTransfers = { viewModel.setShowTransfers(true) },
+                onOpenDownloads = { viewModel.setShowDownloadsWindow(true) },
+                onClearCache = viewModel::clearCache
             )
         },
         contentWindowInsets = WindowInsets.navigationBars,
         floatingActionButton = {
             if (state.selectedIds.isEmpty() && !searchExpanded) {
                 if (compact) {
-                    FloatingActionButton(onClick = onUpload) {
+                    FloatingActionButton(
+                        onClick = onUpload,
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ) {
                         Icon(Icons.Outlined.Upload, contentDescription = "Upload files")
                     }
                 } else {
                     ExtendedFloatingActionButton(
                         onClick = onUpload,
                         icon = { Icon(Icons.Outlined.Upload, contentDescription = null) },
-                        text = { Text("Upload") }
+                        text = { Text("Upload") },
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
             }
@@ -265,6 +298,7 @@ private fun DashboardScaffold(
                     sortField = state.sortField,
                     sortDirection = state.sortDirection,
                     compact = compact,
+                    librarySection = state.librarySection,
                     onSort = viewModel::setSort,
                     onOpen = { file ->
                         if (file.type == ItemType.FOLDER) viewModel.setActiveFolder(file.id)
@@ -286,7 +320,7 @@ private fun DashboardScaffold(
                     ),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (state.uploadQueue.isNotEmpty()) {
+                if (!state.showTransfers && state.uploadQueue.isNotEmpty()) {
                     UploadQueuePanel(
                         items = state.uploadQueue,
                         compact = compact,
@@ -296,7 +330,7 @@ private fun DashboardScaffold(
                         onRetryItem = viewModel::retryUploadItem
                     )
                 }
-                if (state.downloadQueue.isNotEmpty()) {
+                if (!state.showTransfers && state.downloadQueue.isNotEmpty()) {
                     DownloadQueuePanel(
                         items = state.downloadQueue,
                         compact = compact,
@@ -308,6 +342,29 @@ private fun DashboardScaffold(
                 }
             }
         }
+    }
+
+    if (state.showTransfers) {
+        TransfersSheet(
+            uploads = state.uploadQueue,
+            downloads = state.downloadQueue,
+            onDismiss = { viewModel.setShowTransfers(false) },
+            onClearFinishedUploads = viewModel::clearFinishedUploads,
+            onCancelAllUploads = viewModel::cancelAllUploads,
+            onCancelUpload = viewModel::cancelUploadItem,
+            onRetryUpload = viewModel::retryUploadItem,
+            onClearFinishedDownloads = viewModel::clearFinishedDownloads,
+            onCancelAllDownloads = viewModel::cancelAllDownloads,
+            onCancelDownload = viewModel::cancelDownloadItem,
+            onRetryDownload = viewModel::retryDownloadItem
+        )
+    }
+
+    if (state.showDownloadsWindow) {
+        DownloadedFilesWindow(
+            files = state.localDownloads,
+            onClose = { viewModel.setShowDownloadsWindow(false) }
+        )
     }
 
     if (state.showMoveModal) {

@@ -20,10 +20,16 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.CleaningServices
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.InsertDriveFile
 import androidx.compose.material.icons.outlined.Logout
+import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -39,11 +45,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.telebox.app.data.BandwidthStats
+import com.telebox.app.data.LibrarySection
+import com.telebox.app.data.LibraryStats
 import com.telebox.app.data.TelegramFolder
 import com.telebox.app.ui.theme.TeleBoxTheme
+import com.telebox.app.util.formatBytesShort
 
 @Composable
 fun Sidebar(
@@ -54,17 +64,28 @@ fun Sidebar(
     bandwidth: BandwidthStats?,
     showNewFolderInput: Boolean,
     newFolderName: String,
+    librarySection: LibrarySection,
+    libraryStats: LibraryStats,
+    isClearingCache: Boolean,
     onActiveFolderChange: (Long?) -> Unit,
+    onLibrarySectionChange: (LibrarySection) -> Unit,
     onDeleteFolder: (Long, String) -> Unit,
     onShowNewFolder: () -> Unit,
     onNewFolderNameChange: (String) -> Unit,
     onCreateFolder: () -> Unit,
     onSync: () -> Unit,
     onLogout: () -> Unit,
+    onClearCache: () -> Unit,
+    onOpenDownloads: () -> Unit,
     onNavigate: () -> Unit = {}
 ) {
     val colors = TeleBoxTheme.colors
     val scheme = MaterialTheme.colorScheme
+    val itemColors = NavigationDrawerItemDefaults.colors(
+        selectedContainerColor = scheme.secondaryContainer,
+        selectedIconColor = scheme.onSecondaryContainer,
+        selectedTextColor = scheme.onSecondaryContainer
+    )
 
     Column(
         modifier = Modifier
@@ -79,7 +100,7 @@ fun Sidebar(
         ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(44.dp)
                     .clip(MaterialTheme.shapes.medium)
                     .background(scheme.primaryContainer),
                 contentAlignment = Alignment.Center
@@ -88,7 +109,7 @@ fun Sidebar(
                     Icons.Outlined.Cloud,
                     contentDescription = null,
                     tint = scheme.onPrimaryContainer,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
             Column(modifier = Modifier.padding(start = 12.dp)) {
@@ -115,16 +136,84 @@ fun Sidebar(
                 NavigationDrawerItem(
                     icon = { Icon(Icons.Outlined.Cloud, contentDescription = null) },
                     label = { Text("Saved Messages") },
-                    selected = activeFolderId == null,
+                    selected = activeFolderId == null && librarySection == LibrarySection.ALL,
                     onClick = {
                         onActiveFolderChange(null)
                         onNavigate()
                     },
-                    colors = NavigationDrawerItemDefaults.colors(
-                        selectedContainerColor = scheme.secondaryContainer,
-                        selectedIconColor = scheme.onSecondaryContainer,
-                        selectedTextColor = scheme.onSecondaryContainer
-                    )
+                    colors = itemColors
+                )
+            }
+            item {
+                Text(
+                    "Library",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = scheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
+                )
+            }
+            item {
+                LibraryDrawerItem(
+                    icon = Icons.Outlined.Movie,
+                    label = "Videos",
+                    count = libraryStats.videosCount,
+                    bytes = libraryStats.videosBytes,
+                    selected = librarySection == LibrarySection.VIDEOS,
+                    onClick = {
+                        onLibrarySectionChange(LibrarySection.VIDEOS)
+                        onNavigate()
+                    }
+                )
+            }
+            item {
+                LibraryDrawerItem(
+                    icon = Icons.Outlined.Image,
+                    label = "Pictures",
+                    count = libraryStats.picturesCount,
+                    bytes = libraryStats.picturesBytes,
+                    selected = librarySection == LibrarySection.PICTURES,
+                    onClick = {
+                        onLibrarySectionChange(LibrarySection.PICTURES)
+                        onNavigate()
+                    }
+                )
+            }
+            item {
+                LibraryDrawerItem(
+                    icon = Icons.Outlined.Description,
+                    label = "Documents",
+                    count = libraryStats.documentsCount,
+                    bytes = libraryStats.documentsBytes,
+                    selected = librarySection == LibrarySection.DOCUMENTS,
+                    onClick = {
+                        onLibrarySectionChange(LibrarySection.DOCUMENTS)
+                        onNavigate()
+                    }
+                )
+            }
+            item {
+                LibraryDrawerItem(
+                    icon = Icons.Outlined.InsertDriveFile,
+                    label = "Others",
+                    count = libraryStats.othersCount,
+                    bytes = libraryStats.othersBytes,
+                    selected = librarySection == LibrarySection.OTHERS,
+                    onClick = {
+                        onLibrarySectionChange(LibrarySection.OTHERS)
+                        onNavigate()
+                    }
+                )
+            }
+            item {
+                NavigationDrawerItem(
+                    icon = { Icon(Icons.Outlined.Download, contentDescription = null) },
+                    label = { Text("Downloaded files") },
+                    selected = false,
+                    onClick = {
+                        onOpenDownloads()
+                        onNavigate()
+                    },
+                    colors = itemColors
                 )
             }
             if (folders.isNotEmpty()) {
@@ -141,7 +230,7 @@ fun Sidebar(
                 NavigationDrawerItem(
                     icon = { Icon(Icons.Outlined.Folder, contentDescription = null) },
                     label = { Text(folder.name, maxLines = 1) },
-                    selected = activeFolderId == folder.id,
+                    selected = activeFolderId == folder.id && librarySection == LibrarySection.ALL,
                     onClick = {
                         onActiveFolderChange(folder.id)
                         onNavigate()
@@ -159,11 +248,7 @@ fun Sidebar(
                             )
                         }
                     },
-                    colors = NavigationDrawerItemDefaults.colors(
-                        selectedContainerColor = scheme.secondaryContainer,
-                        selectedIconColor = scheme.onSecondaryContainer,
-                        selectedTextColor = scheme.onSecondaryContainer
-                    )
+                    colors = itemColors
                 )
             }
         }
@@ -251,7 +336,56 @@ fun Sidebar(
                     )
                 }
             }
+            TextButton(
+                onClick = onClearCache,
+                enabled = !isClearingCache,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Icon(
+                    Icons.Outlined.CleaningServices,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    if (isClearingCache) "Clearing cache" else "Clear cache",
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
             BandwidthWidget(bandwidth)
         }
     }
+}
+
+@Composable
+private fun LibraryDrawerItem(
+    icon: ImageVector,
+    label: String,
+    count: Int,
+    bytes: Long,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val scheme = MaterialTheme.colorScheme
+    NavigationDrawerItem(
+        icon = { Icon(icon, contentDescription = null) },
+        label = {
+            Column {
+                Text(label)
+                Text(
+                    if (count == 0) "Empty" else "$count files · ${formatBytesShort(bytes)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (selected) scheme.onSecondaryContainer.copy(alpha = 0.8f) else scheme.onSurfaceVariant
+                )
+            }
+        },
+        selected = selected,
+        onClick = onClick,
+        colors = NavigationDrawerItemDefaults.colors(
+            selectedContainerColor = scheme.secondaryContainer,
+            selectedIconColor = scheme.onSecondaryContainer,
+            selectedTextColor = scheme.onSecondaryContainer
+        )
+    )
 }

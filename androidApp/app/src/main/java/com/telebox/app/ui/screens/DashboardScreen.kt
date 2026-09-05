@@ -79,9 +79,7 @@ fun DashboardScreen(
     var searchExpanded by remember { mutableStateOf(false) }
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris: List<Uri> ->
-        viewModel.queueUploads(uris) { uri ->
-            uri.lastPathSegment ?: uri.toString()
-        }
+        viewModel.queueUploads(uris)
     }
 
     BackHandler(enabled = useModalDrawer && drawerState.isOpen) {

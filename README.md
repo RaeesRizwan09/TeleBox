@@ -23,24 +23,26 @@ Key capabilities include:
 
 ## Screenshots
 
-<table>
-  <tr>
-    <th>Authentication</th>
-    <th>Main Interface</th>
-    <th>Sidebar</th>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src="screenshots/auth.jpg" alt="TeleBox authentication screen" width="240">
-    </td>
-    <td align="center">
-      <img src="screenshots/main.jpg" alt="TeleBox main interface" width="240">
-    </td>
-    <td align="center">
-      <img src="screenshots/sidebar.jpg" alt="TeleBox navigation sidebar" width="240">
-    </td>
-  </tr>
-</table>
+<p align="center">
+  <a href="#authentication" display="inline-block">
+    <img src="screenshots/auth.jpg" alt="TeleBox authentication screen" width="240" align="center">
+    <br>
+    <sub align="center"><b>Authentication</b></sub>
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="#main-interface" display="inline-block">
+    <img src="screenshots/main.jpg" alt="TeleBox main interface" width="240" align="center">
+    <br>
+    <sub align="center"><b>Main Interface</b></sub>
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="#sidebar" display="inline-block">
+    <img src="screenshots/sidebar.jpg" alt="TeleBox navigation sidebar" width="240" align="center">
+    <br>
+    <sub align="center"><b>Sidebar</b></sub>
+  </a>
+</p>
+
 
 ## Technology Used
 

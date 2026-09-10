@@ -81,8 +81,20 @@ Install the following tools before building the complete project:
 
 Rust and Android NDK tooling are only required when rebuilding the native engine. The repository includes generated Kotlin bindings and native libraries for `arm64-v8a` devices and `x86_64` emulators.
 
-### Clone the Repository
+**Build Instructions**
 
+1. Clone the repository to your local machine:
 ```bash
 git clone https://github.com/RaeesRizwan09/TeleBox.git
 cd TeleBox
+```
+
+2. Execute the build pipeline script. This script automatically compiles the Rust components and links the generated native libraries directly into the Android project:
+```bash
+./build_pipeline.sh
+```
+
+3. Open Android Studio and select "Open an existing project".
+4. Navigate to the `androidApp` directory and select it.
+5. Allow Gradle to synchronize all project dependencies.
+6. Select your preferred emulator or a connected physical device, then click "Run" to build and launch the application.

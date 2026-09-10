@@ -23,13 +23,6 @@ Key capabilities include:
 
 ## Screenshots
 
-<!--
-Add the screenshots to the following paths:
-docs/screenshots/auth.png
-docs/screenshots/main.png
-docs/screenshots/sidebar.png
--->
-
 <table>
   <tr>
     <th>Authentication</th>
@@ -38,13 +31,13 @@ docs/screenshots/sidebar.png
   </tr>
   <tr>
     <td align="center">
-      <img src="docs/screenshots/auth.png" alt="TeleBox authentication screen" width="240">
+      <img src="screenshots/auth.png" alt="TeleBox authentication screen" width="240">
     </td>
     <td align="center">
-      <img src="docs/screenshots/main.png" alt="TeleBox main interface" width="240">
+      <img src="screenshots/main.png" alt="TeleBox main interface" width="240">
     </td>
     <td align="center">
-      <img src="docs/screenshots/sidebar.png" alt="TeleBox navigation sidebar" width="240">
+      <img src="screenshots/sidebar.png" alt="TeleBox navigation sidebar" width="240">
     </td>
   </tr>
 </table>

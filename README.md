@@ -31,13 +31,13 @@ Key capabilities include:
   </tr>
   <tr>
     <td align="center">
-      <img src="screenshots/auth.png" alt="TeleBox authentication screen" width="240">
+      <img src="screenshots/auth.jpg" alt="TeleBox authentication screen" width="240">
     </td>
     <td align="center">
-      <img src="screenshots/main.png" alt="TeleBox main interface" width="240">
+      <img src="screenshots/main.jpg" alt="TeleBox main interface" width="240">
     </td>
     <td align="center">
-      <img src="screenshots/sidebar.png" alt="TeleBox navigation sidebar" width="240">
+      <img src="screenshots/sidebar.jpg" alt="TeleBox navigation sidebar" width="240">
     </td>
   </tr>
 </table>

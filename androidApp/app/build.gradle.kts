@@ -15,9 +15,16 @@ android {
         versionCode = 132
         versionName = "1.3.2"
 
-        ndk {
-            // Only the ABIs produced by build_pipeline.sh are packaged.
-            abiFilters += listOf("arm64-v8a", "x86_64")
+        // Removed ndk.abiFilters so Gradle doesn't block the other architectures
+    }
+
+    // Configure ABI splits to generate individual and universal APKs
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+            isUniversalApk = true
         }
     }
 

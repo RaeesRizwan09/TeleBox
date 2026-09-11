@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Release Tag (e.g., v1.0.0)'
+        description: 'Release Tag (e.g., v1.3.2)'
         required: false
         default: ''
 
@@ -33,15 +33,56 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease
 
-      - name: Sign APKs
-        uses: r0adkll/sign-android-release@v1
-        id: sign_app
-        with:
-          releaseDirectory: androidApp/app/build/outputs/apk/release
-          signingKey: ${{ secrets.KEYSTORE_BASE64 }}
-          alias: ${{ secrets.KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
-          keyPassword: ${{ secrets.KEY_PASSWORD }}
+      - name: Sign APKs with Android SDK Build Tools
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          # 1. Decode keystore from secret
+          echo "$KEYSTORE_BASE64" | base64 -d > release.keystore
+
+          # 2. Locate the latest installed build-tools (e.g., 34.x or 35.x)
+          BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
+          echo "Using Android Build Tools from: $BUILD_TOOLS_DIR"
+
+          APK_DIR="androidApp/app/build/outputs/apk/release"
+
+          # 3. Zipalign and sign each generated APK
+          for apk in "$APK_DIR"/*-unsigned.apk; do
+            [ -f "$apk" ] || continue
+            
+            base_name=$(basename "$apk" -unsigned.apk)
+            aligned_apk="$APK_DIR/${base_name}-aligned.apk"
+            signed_apk="$APK_DIR/${base_name}-signed.apk"
+
+            echo "Aligning $apk -> $aligned_apk"
+            $BUILD_TOOLS_DIR/zipalign -v -p 4 "$apk" "$aligned_apk"
+
+            echo "Signing $aligned_apk -> $signed_apk"
+            $BUILD_TOOLS_DIR/apksigner sign \
+              --ks release.keystore \
+              --ks-pass pass:"$KEYSTORE_PASSWORD" \
+              --key-pass pass:"$KEY_PASSWORD" \
+              --ks-key-alias "$KEY_ALIAS" \
+              --out "$signed_apk" \
+              "$aligned_apk"
+
+            # Clean up intermediate unaligned/aligned files
+            rm -f "$apk" "$aligned_apk"
+          done
+
+          # Securely remove keystore file from runner disk
+          rm -f release.keystore
+
+      - name: Verify Signed APKs
+        run: |
+          BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
+          for signed_apk in androidApp/app/build/outputs/apk/release/*-signed.apk; do
+            echo "Verifying $signed_apk:"
+            $BUILD_TOOLS_DIR/apksigner verify --verbose "$signed_apk"
+          done
 
       - name: Determine Release Tag
         id: tag
@@ -49,7 +90,7 @@ jobs:
           if [ -n "${{ inputs.release_tag }}" ]; then
             echo "release_tag=${{ inputs.release_tag }}" >> $GITHUB_OUTPUT
           else
-            echo "release_tag=v1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
+            echo "release_tag=v1.3.2-${{ github.run_number }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Create GitHub Release and Upload APKs

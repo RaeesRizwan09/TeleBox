@@ -47,6 +47,8 @@ fun FileExplorer(
     sortDirection: SortDirection,
     compact: Boolean,
     librarySection: LibrarySection = LibrarySection.ALL,
+    thumbnails: Map<Long, String> = emptyMap(),
+    onRequestThumbnail: (TelegramFile) -> Unit = {},
     onSort: (SortField) -> Unit,
     onOpen: (TelegramFile) -> Unit,
     onToggleSelection: (Long) -> Unit,
@@ -133,6 +135,8 @@ fun FileExplorer(
                                 file = file,
                                 isSelected = file.id in selectedIds,
                                 selecting = selecting,
+                                thumbnail = thumbnails[file.id],
+                                onRequestThumbnail = { onRequestThumbnail(file) },
                                 onClick = {
                                     if (selecting) onToggleSelection(file.id) else onOpen(file)
                                 },
@@ -158,6 +162,8 @@ fun FileExplorer(
                                 selected = file.id in selectedIds,
                                 compact = compact,
                                 selecting = selecting,
+                                thumbnail = thumbnails[file.id],
+                                onRequestThumbnail = { onRequestThumbnail(file) },
                                 onClick = {
                                     if (selecting) onToggleSelection(file.id) else onOpen(file)
                                 },

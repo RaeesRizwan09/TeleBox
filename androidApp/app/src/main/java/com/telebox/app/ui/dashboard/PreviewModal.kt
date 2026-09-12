@@ -1,5 +1,8 @@
 package com.telebox.app.ui.dashboard
 
+import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -16,15 +19,22 @@ import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.InsertDriveFile
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -33,6 +43,16 @@ import coil.compose.AsyncImage
 import com.telebox.app.data.TelegramFile
 import com.telebox.app.ui.theme.TeleBoxTheme
 import com.telebox.app.util.isImageFile
+
+/** Decode a `data:image/...;base64,...` URL into an [ImageBitmap]; null for any other input. */
+internal fun base64ToImageBitmap(dataUrl: String): ImageBitmap? {
+    if (!dataUrl.startsWith("data:image", ignoreCase = true)) return null
+    val comma = dataUrl.indexOf(',')
+    if (comma < 0) return null
+    val bytes = runCatching { Base64.decode(dataUrl.substring(comma + 1), Base64.DEFAULT) }.getOrNull() ?: return null
+    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
+    return bitmap.asImageBitmap()
+}
 
 @Composable
 fun PreviewModal(
@@ -47,10 +67,12 @@ fun PreviewModal(
     onPrev: () -> Unit
 ) {
     val colors = TeleBoxTheme.colors
+    var imageError by remember(src) { mutableStateOf(false) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.9f))
+            .background(Color.Black.copy(alpha = 0.92f))
             .clickable(onClick = onClose)
             .systemBarsPadding()
             .padding(12.dp)
@@ -61,27 +83,21 @@ fun PreviewModal(
                 .align(Alignment.CenterStart)
                 .clip(CircleShape)
                 .background(Color.Black.copy(alpha = 0.6f))
-        ) {
-            Icon(Icons.Outlined.ChevronLeft, contentDescription = "Previous", tint = Color.White, modifier = Modifier.size(24.dp))
-        }
+        ) { Icon(Icons.Outlined.ChevronLeft, contentDescription = "Previous", tint = Color.White, modifier = Modifier.size(24.dp)) }
         IconButton(
             onClick = onNext,
             modifier = Modifier
                 .align(Alignment.CenterEnd)
                 .clip(CircleShape)
                 .background(Color.Black.copy(alpha = 0.6f))
-        ) {
-            Icon(Icons.Outlined.ChevronRight, contentDescription = "Next", tint = Color.White, modifier = Modifier.size(24.dp))
-        }
+        ) { Icon(Icons.Outlined.ChevronRight, contentDescription = "Next", tint = Color.White, modifier = Modifier.size(24.dp)) }
         IconButton(
             onClick = onClose,
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .clip(CircleShape)
                 .background(Color.Black.copy(alpha = 0.6f))
-        ) {
-            Icon(Icons.Outlined.Close, contentDescription = "Close", tint = Color.White)
-        }
+        ) { Icon(Icons.Outlined.Close, contentDescription = "Close", tint = Color.White) }
 
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             when {
@@ -100,12 +116,25 @@ fun PreviewModal(
                     Text(error, color = colors.danger, fontSize = 14.sp)
                 }
                 src != null && isImageFile(file.name) -> {
-                    AsyncImage(
-                        model = src,
-                        contentDescription = file.name,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxWidth().padding(48.dp)
-                    )
+                    val bitmap = remember(src) { base64ToImageBitmap(src) }
+                    if (bitmap != null) {
+                        Image(
+                            bitmap = bitmap,
+                            contentDescription = file.name,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp, vertical = 48.dp)
+                        )
+                    } else if (!imageError) {
+                        AsyncImage(
+                            model = src,
+                            contentDescription = file.name,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp, vertical = 48.dp),
+                            onError = { imageError = true }
+                        )
+                    } else {
+                        ImageErrorRetry(onRetry = { imageError = false })
+                    }
                 }
                 else -> Column(
                     modifier = Modifier
@@ -127,5 +156,23 @@ fun PreviewModal(
             fontSize = 14.sp,
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp)
         )
+    }
+}
+
+@Composable
+private fun ImageErrorRetry(onRetry: () -> Unit) {
+    val colors = TeleBoxTheme.colors
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(Icons.Outlined.Refresh, contentDescription = null, tint = Color.White, modifier = Modifier.size(48.dp))
+        Text("Couldn't load image", color = Color.White, modifier = Modifier.padding(top = 12.dp))
+        Box(
+            Modifier
+                .clickable(onClick = onRetry)
+                .clip(RoundedCornerShape(999.dp))
+                .background(colors.primary.copy(alpha = 0.2f))
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Text("Retry", color = colors.primary, fontWeight = FontWeight.Medium)
+        }
     }
 }

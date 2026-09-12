@@ -316,6 +316,8 @@ private fun DashboardScaffold(
                     sortDirection = state.sortDirection,
                     compact = compact,
                     librarySection = state.librarySection,
+                    thumbnails = state.thumbnails,
+                    onRequestThumbnail = viewModel::requestThumbnail,
                     onSort = viewModel::setSort,
                     onOpen = { file ->
                         if (file.type == ItemType.FOLDER) viewModel.setActiveFolder(file.id)

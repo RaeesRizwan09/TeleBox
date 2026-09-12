@@ -33,6 +33,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: telebox-release-unsigned
-          path: androidApp/app/build/outputs/apk/release/app-release-unsigned.apk
+          path: androidApp/app/build/outputs/apk/release/
           if-no-files-found: error
           

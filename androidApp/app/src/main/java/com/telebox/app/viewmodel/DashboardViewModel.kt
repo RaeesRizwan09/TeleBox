@@ -24,6 +24,7 @@ import com.telebox.app.data.TransferStatus
 import com.telebox.app.data.ViewMode
 import com.telebox.app.util.computeLibraryStats
 import com.telebox.app.util.formatBytes
+import com.telebox.app.util.isImageFile
 import com.telebox.app.util.isMediaFile
 import com.telebox.app.util.isPdfFile
 import com.telebox.app.util.librarySectionFor
@@ -84,7 +85,8 @@ data class DashboardUiState(
     val showTransfers: Boolean = false,
     val showDownloadsWindow: Boolean = false,
     val localDownloads: List<LocalDownload> = emptyList(),
-    val isClearingCache: Boolean = false
+    val isClearingCache: Boolean = false,
+    val thumbnails: Map<Long, String> = emptyMap()
 )
 
 data class ContextMenuState(
@@ -445,6 +447,30 @@ class DashboardViewModel(
                     )
                 }
             }
+        }
+    }
+
+    private val thumbnailJobs = mutableMapOf<Long, Job>()
+
+    /**
+     * Lazily fetches an inline thumbnail for an image file and stores the resulting
+     * model (base64 data URL) in [DashboardUiState.thumbnails]. This is what makes image
+     * thumbnails actually render in the file grid / list — previously nothing requested them.
+     */
+    fun requestThumbnail(file: TelegramFile) {
+        if (file.type == ItemType.FOLDER) return
+        if (!isImageFile(file.name)) return
+        val id = file.id
+        if (_state.value.thumbnails.containsKey(id)) return
+        if (thumbnailJobs.containsKey(id)) return
+        thumbnailJobs[id] = viewModelScope.launch {
+            runCatching { repository.getThumbnail(file.id, file.folderId ?: _state.value.activeFolderId) }
+                .onSuccess { src ->
+                    if (!src.isNullOrEmpty()) {
+                        _state.update { it.copy(thumbnails = it.thumbnails + (id to src)) }
+                    }
+                }
+            thumbnailJobs.remove(id)
         }
     }
 

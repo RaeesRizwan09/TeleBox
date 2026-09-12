@@ -1,6 +1,7 @@
 package com.telebox.app.ui.dashboard
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +44,7 @@ fun FileCard(
     isSelected: Boolean,
     selecting: Boolean,
     thumbnail: String? = null,
+    onRequestThumbnail: () -> Unit = {},
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     onToggleSelection: () -> Unit,
@@ -48,6 +52,8 @@ fun FileCard(
 ) {
     val scheme = MaterialTheme.colorScheme
     val isFolder = file.type == ItemType.FOLDER
+
+    LaunchedEffect(file.id) { onRequestThumbnail() }
 
     Card(
         modifier = Modifier
@@ -66,12 +72,22 @@ fun FileCard(
             contentAlignment = Alignment.Center
         ) {
             if (thumbnail != null) {
-                AsyncImage(
-                    model = thumbnail,
-                    contentDescription = file.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+                val bitmap = remember(thumbnail) { base64ToImageBitmap(thumbnail) }
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap,
+                        contentDescription = file.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    AsyncImage(
+                        model = thumbnail,
+                        contentDescription = file.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             } else if (isFolder) {
                 FolderTypeIcon(size = FileIconSize.LG)
             } else {

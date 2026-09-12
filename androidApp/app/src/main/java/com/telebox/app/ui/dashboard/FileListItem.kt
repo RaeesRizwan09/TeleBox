@@ -1,6 +1,7 @@
 package com.telebox.app.ui.dashboard
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.MoreVert
@@ -19,11 +21,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.telebox.app.data.ItemType
 import com.telebox.app.data.TelegramFile
 import com.telebox.app.ui.components.FileIconSize
@@ -37,12 +43,17 @@ fun FileListItem(
     selected: Boolean,
     compact: Boolean,
     selecting: Boolean,
+    thumbnail: String? = null,
+    onRequestThumbnail: () -> Unit = {},
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     onMore: () -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
     val isFolder = file.type == ItemType.FOLDER
+
+    LaunchedEffect(file.id) { onRequestThumbnail() }
+
     val meta = buildString {
         append(file.sizeStr)
         if (!compact && !file.createdAt.isNullOrBlank()) {
@@ -88,6 +99,23 @@ fun FileListItem(
                 }
             } else if (isFolder) {
                 FolderTypeIcon(size = FileIconSize.MD)
+            } else if (thumbnail != null) {
+                val bitmap = remember(thumbnail) { base64ToImageBitmap(thumbnail) }
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap,
+                        contentDescription = file.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp))
+                    )
+                } else {
+                    AsyncImage(
+                        model = thumbnail,
+                        contentDescription = file.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp))
+                    )
+                }
             } else {
                 FileTypeIcon(filename = file.name, size = FileIconSize.MD)
             }

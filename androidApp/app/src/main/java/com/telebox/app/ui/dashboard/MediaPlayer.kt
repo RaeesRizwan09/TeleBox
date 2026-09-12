@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -60,6 +59,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
@@ -189,7 +190,7 @@ fun MediaPlayerDialog(
                 .background(
                     Brush.radialGradient(
                         colors = listOf(accent.copy(alpha = 0.16f), Color.Transparent),
-                        radius = 900.dp
+                        radius = 900f
                     )
                 )
         )
@@ -199,12 +200,12 @@ fun MediaPlayerDialog(
             Modifier
                 .fillMaxWidth()
                 .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             PlayerGlassButton(onClick = onClose, size = 44.dp, iconSize = 22.dp,
                 containerColor = scheme.surface.copy(alpha = 0.28f), contentColor = Color.White,
                 icon = Icons.Outlined.Close)
-            Spacer(Modifier.weight(1f))
             if (totalItems > 1) {
                 Box(
                     Modifier

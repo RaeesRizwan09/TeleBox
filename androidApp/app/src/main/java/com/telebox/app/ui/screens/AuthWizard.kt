@@ -82,6 +82,7 @@ import com.telebox.app.data.AppThemeMode
 import com.telebox.app.data.AuthStep
 import com.telebox.app.data.LoginMethod
 import com.telebox.app.ui.theme.TeleBoxTheme
+import com.telebox.app.ui.theme.yumaGlassCard
 import com.telebox.app.util.formatFloodWait
 import com.telebox.app.viewmodel.AuthUiState
 
@@ -148,8 +149,7 @@ fun AuthWizardScreen(
             modifier = Modifier
                 .widthIn(max = 448.dp)
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(24.dp))
-                .background(colors.authGlass)
+                .yumaGlassCard(shape = RoundedCornerShape(24.dp), backgroundColor = colors.authGlass)
                 .padding(horizontal = 24.dp, vertical = 28.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -216,8 +216,8 @@ fun AuthWizardScreen(
                         .fillMaxWidth()
                         .padding(top = 24.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0x1AEF4444))
-                        .border(1.dp, Color(0x33EF4444), RoundedCornerShape(12.dp))
+                        .background(colors.danger.copy(alpha = 0.12f))
+                        .border(1.dp, colors.danger.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
                         .padding(16.dp)
                 ) {
                     Box(
@@ -225,9 +225,9 @@ fun AuthWizardScreen(
                             .padding(top = 8.dp)
                             .size(6.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFEF4444))
+                            .background(colors.danger)
                     )
-                    Text(state.error, color = Color(0xFFF87171), fontSize = 14.sp, modifier = Modifier.padding(start = 12.dp))
+                    Text(state.error, color = colors.danger, fontSize = 14.sp, modifier = Modifier.padding(start = 12.dp))
                 }
             }
 
@@ -235,12 +235,12 @@ fun AuthWizardScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 32.dp)
-                    .border(width = 1.dp, color = Color.White.copy(alpha = 0.05f), shape = RoundedCornerShape(0.dp))
+                    .border(width = 1.dp, color = colors.text.copy(alpha = 0.06f), shape = RoundedCornerShape(0.dp))
                     .padding(top = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
                 TextButton(onClick = { onShowDonate(true) }) {
-                    Icon(Icons.Outlined.Favorite, contentDescription = null, tint = Color(0xCCEF4444), modifier = Modifier.size(14.dp))
+                    Icon(Icons.Outlined.Favorite, contentDescription = null, tint = colors.danger.copy(alpha = 0.8f), modifier = Modifier.size(14.dp))
                     Text("Donate", color = colors.subtext, fontSize = 12.sp, modifier = Modifier.padding(start = 6.dp))
                 }
             }
@@ -261,22 +261,23 @@ fun AuthWizardScreen(
 
 @Composable
 private fun FloodWaitBlock(seconds: Int) {
+    val scheme = MaterialTheme.colorScheme
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
                 .size(64.dp)
                 .clip(CircleShape)
-                .background(Color(0x33EF4444)),
+                .background(scheme.error.copy(alpha = 0.20f)),
             contentAlignment = Alignment.Center
         ) {
-            Text("WAIT", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Text("WAIT", color = scheme.error, fontWeight = FontWeight.Bold, fontSize = 12.sp)
         }
         Spacer(Modifier.height(16.dp))
-        Text("Too Many Requests", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        Text("Telegram has temporarily limited your actions.", color = Color.Gray, fontSize = 14.sp)
-        Text("Please wait before trying again.", color = Color.Gray, fontSize = 14.sp)
-        Text(formatFloodWait(seconds), color = Color(0xFF60A5FA), fontSize = 48.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 16.dp))
-        Text("Do not restart the app. The timer will reset if you do.", color = Color(0x99F87171), fontSize = 12.sp)
+        Text("Too Many Requests", color = scheme.onSurface, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text("Telegram has temporarily limited your actions.", color = scheme.onSurfaceVariant, fontSize = 14.sp)
+        Text("Please wait before trying again.", color = scheme.onSurfaceVariant, fontSize = 14.sp)
+        Text(formatFloodWait(seconds), color = scheme.primary, fontSize = 48.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 16.dp))
+        Text("Do not restart the app. The timer will reset if you do.", color = scheme.error.copy(alpha = 0.7f), fontSize = 12.sp)
     }
 }
 
@@ -289,6 +290,7 @@ private fun SetupStep(
     onShowHelp: () -> Unit,
     onDevLogin: () -> Unit
 ) {
+    val scheme = MaterialTheme.colorScheme
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         AuthField("API ID", state.apiId, "12345678", KeyboardType.Number, onApiIdChange)
         AuthField("API HASH", state.apiHash, "abcdef123456...", KeyboardType.Ascii, onApiHashChange)
@@ -301,11 +303,11 @@ private fun SetupStep(
             Icon(Icons.Outlined.Settings, contentDescription = null, modifier = Modifier.padding(start = 8.dp).size(16.dp))
         }
         TextButton(onClick = onShowHelp, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Outlined.HelpOutline, contentDescription = null, tint = Color(0xFF93C5FD), modifier = Modifier.size(12.dp))
-            Text("How do I get my API credentials?", color = Color(0xFF93C5FD), fontSize = 12.sp, modifier = Modifier.padding(start = 6.dp))
+            Icon(Icons.Outlined.HelpOutline, contentDescription = null, tint = scheme.primary, modifier = Modifier.size(12.dp))
+            Text("How do I get my API credentials?", color = scheme.primary, fontSize = 12.sp, modifier = Modifier.padding(start = 6.dp))
         }
         TextButton(onClick = onDevLogin, modifier = Modifier.fillMaxWidth()) {
-            Text("Dev Mode", color = Color(0x99F87171), fontSize = 12.sp)
+            Text("Dev Mode", color = scheme.error.copy(alpha = 0.7f), fontSize = 12.sp)
         }
     }
 }
@@ -320,12 +322,13 @@ private fun PhoneStep(
     onRefreshQr: () -> Unit,
     onBack: () -> Unit
 ) {
+    val scheme = MaterialTheme.colorScheme
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                .border(1.dp, scheme.onSurface.copy(alpha = 0.10f), RoundedCornerShape(12.dp))
         ) {
             MethodTab("Phone Number", Icons.Outlined.Phone, state.loginMethod == LoginMethod.PHONE, Modifier.weight(1f), onSwitchPhone)
             MethodTab("QR Code", Icons.Outlined.QrCode, state.loginMethod == LoginMethod.QR, Modifier.weight(1f), onStartQr)
@@ -345,7 +348,7 @@ private fun PhoneStep(
                 }
             }
             TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-                Text("Back to Configuration", color = Color.Gray, fontSize = 12.sp)
+                Text("Back to Configuration", color = scheme.onSurfaceVariant, fontSize = 12.sp)
             }
         } else {
             QrBlock(state, onRefreshQr, onBack)
@@ -386,13 +389,14 @@ private fun MethodTab(
 
 @Composable
 private fun QrBlock(state: AuthUiState, onRefresh: () -> Unit, onBack: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         if (state.loading && state.qrUrl == null) {
             Box(
-                modifier = Modifier.size(180.dp).clip(RoundedCornerShape(16.dp)).background(Color.White.copy(alpha = 0.05f)),
+                modifier = Modifier.size(180.dp).clip(RoundedCornerShape(16.dp)).background(scheme.onSurface.copy(alpha = 0.05f)),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = Color(0xFF60A5FA), modifier = Modifier.size(32.dp), strokeWidth = 2.dp)
+                CircularProgressIndicator(color = scheme.primary, modifier = Modifier.size(32.dp), strokeWidth = 2.dp)
             }
         }
         state.qrUrl?.let { url ->
@@ -402,20 +406,20 @@ private fun QrBlock(state: AuthUiState, onRefresh: () -> Unit, onBack: () -> Uni
                     Image(bitmap = bitmap.asImageBitmap(), contentDescription = "QR Code", modifier = Modifier.size(180.dp))
                 }
             }
-            Text("Scan with your Telegram app", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp, modifier = Modifier.padding(top = 16.dp))
-            Text("Settings > Devices > Link Desktop Device", color = Color.White.copy(alpha = 0.4f), fontSize = 12.sp)
+            Text("Scan with your Telegram app", color = scheme.onSurface.copy(alpha = 0.8f), fontSize = 14.sp, modifier = Modifier.padding(top = 16.dp))
+            Text("Settings > Devices > Link Desktop Device", color = scheme.onSurfaceVariant, fontSize = 12.sp)
             if (state.qrPolling) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
-                    CircularProgressIndicator(color = Color(0xFF93C5FD), modifier = Modifier.size(12.dp), strokeWidth = 2.dp)
-                    Text("Waiting for scan...", color = Color(0xFF93C5FD), fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp))
+                    CircularProgressIndicator(color = scheme.primary, modifier = Modifier.size(12.dp), strokeWidth = 2.dp)
+                    Text("Waiting for scan...", color = scheme.primary, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp))
                 }
             }
             TextButton(onClick = onRefresh) {
-                Text("Refresh QR Code", color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp)
+                Text("Refresh QR Code", color = scheme.onSurfaceVariant, fontSize = 12.sp)
             }
         }
         TextButton(onClick = onBack) {
-            Text("Back to Configuration", color = Color.Gray, fontSize = 12.sp)
+            Text("Back to Configuration", color = scheme.onSurfaceVariant, fontSize = 12.sp)
         }
     }
 }
@@ -427,6 +431,7 @@ private fun CodeStep(
     onSubmit: () -> Unit,
     onBack: () -> Unit
 ) {
+    val scheme = MaterialTheme.colorScheme
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         AuthField("TELEGRAM CODE", state.code, "1 2 3 4 5", KeyboardType.Number, onCodeChange)
         Button(
@@ -438,7 +443,7 @@ private fun CodeStep(
             Text(if (state.loading) "Verifying..." else "Sign In", fontWeight = FontWeight.Bold)
         }
         TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-            Text("Change Phone Number", color = Color.Gray, fontSize = 12.sp)
+            Text("Change Phone Number", color = scheme.onSurfaceVariant, fontSize = 12.sp)
         }
     }
 }
@@ -450,17 +455,18 @@ private fun PasswordStep(
     onSubmit: () -> Unit,
     onBack: () -> Unit
 ) {
+    val scheme = MaterialTheme.colorScheme
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(
             "Your account has Two-Factor Authentication enabled. Please enter your cloud password to continue.",
-            color = Color(0xFF93C5FD),
+            color = scheme.onSurfaceVariant,
             fontSize = 12.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color(0x1A3B82F6))
-                .border(1.dp, Color(0x333B82F6), RoundedCornerShape(12.dp))
+                .background(scheme.onSurface.copy(alpha = 0.06f))
+                .border(1.dp, scheme.onSurface.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
                 .padding(12.dp)
         )
         AuthField(
@@ -481,7 +487,7 @@ private fun PasswordStep(
             Text(if (state.loading) "Verifying..." else "Unlock", fontWeight = FontWeight.Bold)
         }
         TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-            Text("Back to Code Entry", color = Color.Gray, fontSize = 12.sp)
+            Text("Back to Code Entry", color = scheme.onSurfaceVariant, fontSize = 12.sp)
         }
     }
 }
@@ -540,7 +546,7 @@ private fun AuthField(
 private fun HelpDialog(onClose: () -> Unit, onOpenPortal: () -> Unit) {
     val colors = TeleBoxTheme.colors
     Box(
-        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.7f)).clickable(onClick = onClose),
+        modifier = Modifier.fillMaxSize().background(colors.overlayScrim).clickable(onClick = onClose),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -549,7 +555,7 @@ private fun HelpDialog(onClose: () -> Unit, onOpenPortal: () -> Unit) {
                 .fillMaxWidth()
                 .padding(16.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(colors.surface)
+                .background(colors.confirmSurface)
                 .clickable(enabled = false) {}
                 .padding(24.dp)
                 .verticalScroll(rememberScrollState())
@@ -586,7 +592,7 @@ private fun HelpDialog(onClose: () -> Unit, onOpenPortal: () -> Unit) {
             Button(
                 onClick = onOpenPortal,
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp).height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = colors.primary, contentColor = Color.White),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.primary, contentColor = colors.onPrimary),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(Icons.Outlined.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -605,7 +611,7 @@ private fun HelpStep(number: Int, title: String, body: String) {
                 modifier = Modifier.size(24.dp).clip(CircleShape).background(colors.primary),
                 contentAlignment = Alignment.Center
             ) {
-                Text("$number", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text("$number", color = colors.onPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
             Text(title, color = colors.text, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 8.dp))
         }
@@ -617,7 +623,7 @@ private fun HelpStep(number: Int, title: String, body: String) {
 private fun DonateDialog(onClose: () -> Unit, onOpen: (String) -> Unit) {
     val colors = TeleBoxTheme.colors
     Box(
-        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.7f)).clickable(onClick = onClose),
+        modifier = Modifier.fillMaxSize().background(colors.overlayScrim).clickable(onClick = onClose),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -626,7 +632,7 @@ private fun DonateDialog(onClose: () -> Unit, onOpen: (String) -> Unit) {
                 .fillMaxWidth()
                 .padding(16.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(colors.surface)
+                .background(colors.confirmSurface)
                 .clickable(enabled = false) {}
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally

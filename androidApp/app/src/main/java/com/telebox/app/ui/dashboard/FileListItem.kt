@@ -35,6 +35,7 @@ import com.telebox.app.data.TelegramFile
 import com.telebox.app.ui.components.FileIconSize
 import com.telebox.app.ui.components.FileTypeIcon
 import com.telebox.app.ui.components.FolderTypeIcon
+import com.telebox.app.ui.theme.yumaGlassCard
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -65,8 +66,11 @@ fun FileListItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large)
-            .background(if (selected) scheme.secondaryContainer else scheme.surface)
+            .yumaGlassCard(
+                shape = MaterialTheme.shapes.large,
+                backgroundColor = if (selected) scheme.secondaryContainer else null,
+                position = com.telebox.app.ui.theme.YumaSegmentPosition.Single
+            )
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .heightIn(min = 64.dp)
             .padding(horizontal = 12.dp, vertical = 10.dp),

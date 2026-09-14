@@ -2,7 +2,9 @@ package com.telebox.app.ui.dashboard
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -14,7 +16,6 @@ import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -81,7 +82,7 @@ fun FileContextMenu(
                     )
                 }
             }
-            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+            Spacer(Modifier.height(12.dp))
             if (file.type != ItemType.FOLDER) {
                 val (icon, label) = when {
                     isMediaFile(file.name) -> Icons.Outlined.PlayArrow to "Play"

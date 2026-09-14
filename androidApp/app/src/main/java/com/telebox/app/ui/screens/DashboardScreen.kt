@@ -61,9 +61,11 @@ import com.telebox.app.ui.dashboard.Sidebar
 import com.telebox.app.ui.dashboard.TopBar
 import com.telebox.app.ui.dashboard.TransfersSheet
 import com.telebox.app.ui.dashboard.UploadQueuePanel
+import com.telebox.app.ui.theme.TeleBoxTheme
 import com.telebox.app.ui.theme.isCompact
 import com.telebox.app.ui.theme.rememberWindowWidthSize
 import com.telebox.app.ui.theme.useModalDrawer
+import com.telebox.app.ui.theme.yumaOnyxBackground
 import com.telebox.app.util.copyPickedUriToCache
 import com.telebox.app.viewmodel.DashboardUiState
 import com.telebox.app.viewmodel.DashboardViewModel
@@ -165,7 +167,7 @@ fun DashboardScreen(
             drawerContent = {
                 ModalDrawerSheet(
                     modifier = Modifier.fillMaxWidth(0.88f),
-                    drawerContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    drawerContainerColor = TeleBoxTheme.colors.glass
                 ) {
                     sidebar()
                 }
@@ -178,7 +180,7 @@ fun DashboardScreen(
             drawerContent = {
                 PermanentDrawerSheet(
                     modifier = Modifier.width(292.dp),
-                    drawerContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    drawerContainerColor = TeleBoxTheme.colors.glass
                 ) {
                     sidebar()
                 }
@@ -271,8 +273,8 @@ private fun DashboardScaffold(
                 if (compact) {
                     FloatingActionButton(
                         onClick = onUpload,
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
                         shape = MaterialTheme.shapes.large,
                         elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
                     ) {
@@ -283,8 +285,8 @@ private fun DashboardScaffold(
                         onClick = onUpload,
                         icon = { Icon(Icons.Outlined.Upload, contentDescription = null) },
                         text = { Text("Upload") },
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
                         shape = MaterialTheme.shapes.extraLarge,
                         elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
                     )
@@ -295,6 +297,7 @@ private fun DashboardScaffold(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .yumaOnyxBackground()
                 .padding(innerPadding)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {

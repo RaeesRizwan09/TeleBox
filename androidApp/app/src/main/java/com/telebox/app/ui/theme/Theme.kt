@@ -264,7 +264,7 @@ private val TeleBoxShapes = Shapes(
 @Composable
 fun TeleBoxTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
@@ -307,14 +307,14 @@ private fun TeleBoxExtendedColors.harmonized(scheme: ColorScheme, darkTheme: Boo
         subtext = scheme.onSurfaceVariant,
         border = scheme.outlineVariant,
         hover = scheme.surfaceContainerHigh,
-        glass = scheme.surfaceContainer.copy(alpha = 0.92f),
-        authGlass = scheme.surfaceContainer.copy(alpha = if (darkTheme) 0.88f else 0.92f),
-        glassInput = scheme.surfaceContainerLowest.copy(alpha = 0.78f),
-        authGradient = Brush.linearGradient(listOf(scheme.primaryContainer, scheme.surface)),
+        glass = scheme.surfaceContainer.copy(alpha = if (darkTheme) 0.72f else 0.86f),
+        authGlass = scheme.surfaceContainer.copy(alpha = if (darkTheme) 0.82f else 0.92f),
+        glassInput = scheme.surfaceContainerLowest.copy(alpha = if (darkTheme) 0.72f else 0.86f),
+        authGradient = Brush.linearGradient(listOf(scheme.surfaceContainerHigh, scheme.background)),
         danger = scheme.error,
         dangerSoft = scheme.error.copy(alpha = if (darkTheme) 0.16f else 0.12f),
         onPrimary = scheme.onPrimary,
-        overlayScrim = if (darkTheme) Color(0x99000000) else Color(0xB3000000),
+        overlayScrim = if (darkTheme) Color(0xCC000000) else Color(0xB3000000),
         confirmSurface = scheme.surfaceContainerHigh,
         brand = scheme.primary
     )

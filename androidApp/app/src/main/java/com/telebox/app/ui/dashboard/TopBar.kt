@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.telebox.app.data.AppThemeMode
 import com.telebox.app.data.ViewMode
+import com.telebox.app.ui.theme.TeleBoxTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,7 +95,7 @@ fun TopBar(
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = scheme.surfaceContainer,
+                containerColor = TeleBoxTheme.colors.glass,
                 titleContentColor = scheme.onSurface,
                 navigationIconContentColor = scheme.onSurface
             )
@@ -127,10 +128,10 @@ fun TopBar(
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = scheme.secondaryContainer,
-                titleContentColor = scheme.onSecondaryContainer,
-                navigationIconContentColor = scheme.onSecondaryContainer,
-                actionIconContentColor = scheme.onSecondaryContainer
+                containerColor = scheme.primary,
+                titleContentColor = scheme.onPrimary,
+                navigationIconContentColor = scheme.onPrimary,
+                actionIconContentColor = scheme.onPrimary
             )
         )
         return
@@ -231,7 +232,7 @@ fun TopBar(
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = scheme.surfaceContainer,
+            containerColor = TeleBoxTheme.colors.glass,
             titleContentColor = scheme.onSurface,
             navigationIconContentColor = scheme.onSurface,
             actionIconContentColor = scheme.onSurfaceVariant

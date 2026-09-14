@@ -3,18 +3,21 @@ package com.telebox.app.ui.theme
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.border
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
@@ -22,23 +25,25 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.MaterialTheme
 
 /**
- * Yuma Design System (YDS 2.1) primitives adapted for TeleBox.
+ * Yuma Design System (YDS 2.1) primitives adapted for TeleBox, tuned for the
+ * "Onyx" dark-mono direction.
  *
  * These mirror the building blocks analysed in YumaPlayer (see SKILL.md):
  *  - segmented glass surfaces with position-aware hairline lighting
  *  - tactile press-scale clickables (0.96f spring) with light haptics
  *  - composite corner radii (22dp outer / 5dp inner) and a 1.5dp segment gap
+ *  - matte icon badges instead of generic Material circular chips
  *
- * The system is intentionally additive: it reads from TeleBox's existing
- * [TeleBoxTheme] + Material 3 surfaces and never mutates them.
+ * Surfaces are intentionally near-black with a monochrome near-white hairline,
+ * so the interface reads as a single sheet of dramatic onyx glass. Accent is
+ * reserved for meaning (selection, primary action, semantic status).
  */
-
 object YumaTokens {
     val SegmentGap = 1.5.dp
     val SegmentOuter = 22.dp
@@ -48,6 +53,9 @@ object YumaTokens {
     val PressScale = 0.96f
     val TouchTarget = 48.dp
     val GlassBorderThickness = 0.5.dp
+    val IconBadge = 46.dp
+    val IconBadgeSmall = 34.dp
+    val RowMinHeight = 72.dp
 }
 
 enum class YumaSegmentPosition { Single, First, Middle, Last }
@@ -85,18 +93,19 @@ fun segmentedItemShape(index: Int, count: Int): Shape {
 data class YumaGlassColors(
     val background: Color,
     val border: Color,
-    val onGlass: Color
+    val onGlass: Color,
+    val isDark: Boolean
 )
 
 @Composable
 fun yumaGlassColors(): YumaGlassColors {
-    val colors = TeleBoxTheme.colors
     val scheme = MaterialTheme.colorScheme
     val isDark = scheme.background.luminance() < 0.5f
     return YumaGlassColors(
-        background = if (isDark) colors.surface.copy(alpha = 0.72f) else Color.White.copy(alpha = 0.66f),
-        border = colors.primary.copy(alpha = if (isDark) 0.16f else 0.20f),
-        onGlass = scheme.onSurface
+        background = if (isDark) scheme.surfaceContainer.copy(alpha = 0.72f) else Color.White.copy(alpha = 0.70f),
+        border = if (isDark) scheme.onSurface.copy(alpha = 0.90f) else scheme.onSurface.copy(alpha = 0.55f),
+        onGlass = scheme.onSurface,
+        isDark = isDark
     )
 }
 
@@ -136,10 +145,34 @@ fun Modifier.yumaGlassCard(
     val alphas = yumaSegmentAlphas(position)
     val top = topAlpha ?: alphas.first
     val bot = bottomAlpha ?: alphas.second
+    val sheen = if (glass.isDark) 0.06f else 0.55f
     return this
         .clip(shape)
         .background(bg, shape)
+        .background(
+            Brush.verticalGradient(
+                0.0f to Color.White.copy(alpha = sheen),
+                0.55f to Color.Transparent
+            ),
+            shape
+        )
         .glassBorder(shape, strokeWidth, top, bot, bc)
+}
+
+/** Full-bleed Onyx backdrop: near-black fading into an even deeper container. */
+@Composable
+fun Modifier.yumaOnyxBackground(): Modifier {
+    val scheme = MaterialTheme.colorScheme
+    val isDark = scheme.background.luminance() < 0.5f
+    return if (isDark) {
+        this.background(
+            Brush.verticalGradient(
+                listOf(scheme.background, scheme.surfaceContainerLowest)
+            )
+        )
+    } else {
+        this.background(scheme.background)
+    }
 }
 
 /**
@@ -190,4 +223,46 @@ fun YumaGlassCard(
             .clip(shape),
         content = content
     )
+}
+
+/**
+ * Matte squircle icon badge. Replaces generic Material circular chips with the
+ * YDS badge geometry (petal/squircle), monochrome by default and accent-filled
+ * only when it carries meaning.
+ */
+@Composable
+fun YumaIconBadge(
+    icon: ImageVector,
+    contentDescription: String? = null,
+    modifier: Modifier = Modifier,
+    size: Dp = YumaTokens.IconBadge,
+    accent: Boolean = false,
+    containerColor: Color? = null,
+    contentColor: Color? = null
+) {
+    val scheme = MaterialTheme.colorScheme
+    val glass = yumaGlassColors()
+    val bg = containerColor ?: if (accent) scheme.primary else scheme.surfaceContainerHigh
+    val fg = contentColor ?: if (accent) scheme.onPrimary else glass.onGlass
+    val shape = RoundedCornerShape(size / 3)
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(shape)
+            .background(bg, shape)
+            .glassBorder(
+                shape = shape,
+                topAlpha = if (accent) 0.28f else 0.16f,
+                bottomAlpha = 0.04f,
+                baseColor = if (accent) scheme.onPrimary else scheme.onSurface
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = fg,
+            modifier = Modifier.size(size * 0.46f)
+        )
+    }
 }

@@ -8,20 +8,23 @@ import androidx.compose.ui.unit.sp
 
 val TeleBoxFontFamily = FontFamily.SansSerif
 
+/** Monospace face used for the "technical" accent: labels, overlines, counters. */
+val TeleBoxMonoFamily = FontFamily.Monospace
+
 val Typography = Typography(
     displayLarge = TextStyle(
         fontFamily = TeleBoxFontFamily,
         fontWeight = FontWeight.Bold,
-        fontSize = 48.sp,
-        lineHeight = 56.sp,
-        letterSpacing = (-0.25).sp
+        fontSize = 52.sp,
+        lineHeight = 58.sp,
+        letterSpacing = (-1).sp
     ),
     headlineLarge = TextStyle(
         fontFamily = TeleBoxFontFamily,
         fontWeight = FontWeight.Bold,
-        fontSize = 24.sp,
+        fontSize = 26.sp,
         lineHeight = 32.sp,
-        letterSpacing = (-0.3).sp
+        letterSpacing = (-0.6).sp
     ),
     headlineMedium = TextStyle(
         fontFamily = TeleBoxFontFamily,
@@ -73,24 +76,24 @@ val Typography = Typography(
         lineHeight = 16.sp
     ),
     labelLarge = TextStyle(
-        fontFamily = TeleBoxFontFamily,
+        fontFamily = TeleBoxMonoFamily,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 14.sp,
+        fontSize = 13.sp,
         lineHeight = 20.sp,
-        letterSpacing = 0.1.sp
+        letterSpacing = 0.8.sp
     ),
     labelMedium = TextStyle(
-        fontFamily = TeleBoxFontFamily,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = TeleBoxMonoFamily,
+        fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+        letterSpacing = 1.sp
     ),
     labelSmall = TextStyle(
-        fontFamily = TeleBoxFontFamily,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = TeleBoxMonoFamily,
+        fontWeight = FontWeight.Medium,
         fontSize = 10.sp,
         lineHeight = 14.sp,
-        letterSpacing = 0.5.sp
+        letterSpacing = 1.2.sp
     )
 )

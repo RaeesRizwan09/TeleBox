@@ -57,7 +57,7 @@ fun TeleBoxRoot() {
         AppThemeMode.LIGHT -> false
         AppThemeMode.SYSTEM -> isSystemInDarkTheme()
     }
-    TeleBoxTheme(darkTheme = darkTheme, dynamicColor = true) {
+    TeleBoxTheme(darkTheme = darkTheme, dynamicColor = false) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background

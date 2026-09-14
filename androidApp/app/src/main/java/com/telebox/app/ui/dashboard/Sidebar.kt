@@ -32,7 +32,6 @@ import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -253,7 +252,7 @@ fun Sidebar(
             }
         }
 
-        HorizontalDivider(color = scheme.outlineVariant)
+        Spacer(Modifier.height(4.dp))
         Box(
             modifier = Modifier
                 .fillMaxWidth()

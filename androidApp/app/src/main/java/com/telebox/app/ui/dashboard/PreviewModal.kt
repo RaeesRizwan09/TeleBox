@@ -139,7 +139,7 @@ fun PreviewModal(
                 else -> Column(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF1C1C1C))
+                        .background(colors.confirmSurface)
                         .padding(32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {

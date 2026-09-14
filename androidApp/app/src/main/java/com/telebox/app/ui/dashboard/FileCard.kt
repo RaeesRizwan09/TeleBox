@@ -1,5 +1,6 @@
 package com.telebox.app.ui.dashboard
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -36,6 +37,7 @@ import com.telebox.app.data.TelegramFile
 import com.telebox.app.ui.components.FileIconSize
 import com.telebox.app.ui.components.FileTypeIcon
 import com.telebox.app.ui.components.FolderTypeIcon
+import com.telebox.app.ui.theme.YumaTokens
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -63,6 +65,10 @@ fun FileCard(
             containerColor = if (isSelected) scheme.secondaryContainer else scheme.surfaceContainerLow
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 2.dp else 0.dp),
+        border = BorderStroke(
+            YumaTokens.GlassBorderThickness,
+            if (isSelected) scheme.primary.copy(alpha = 0.40f) else scheme.onSurface.copy(alpha = 0.08f)
+        ),
         shape = MaterialTheme.shapes.extraLarge
     ) {
         Box(
